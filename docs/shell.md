@@ -4,13 +4,26 @@
 
 ## 구성
 
-- **bash + starship** — zsh/oh-my-zsh에서 이전 (시작 3.6s → 0.1s)
+- **bash (로그인 셸) + starship** — zsh/oh-my-zsh에서 이전 (시작 3.6s → 0.1s)
 - **eza / bat** — 컬러 `ls`, 문법 하이라이팅 `cat`
 - **fzf** — Ctrl+R 히스토리 퍼지검색, Ctrl+T 파일, Alt+C 디렉터리
 - **bash-completion** — 문맥 인식 Tab 완성
+- **fish** (선택) — 대화형 UX용. starship·eza·fzf·ls 래퍼를 bash와 동일하게 구성
 
 공용 `starship.toml` 하나를 모든 노드에 배포. `ls -altr` 같은 GNU 손버릇은
 eza 문법으로 자동 번역하는 래퍼 함수로 흡수.
+
+## 왜 bash가 로그인 셸인가 (fish/zsh 아니고)
+
+fish의 대화형 UX(자동완성·하이라이팅)는 훌륭하지만, **로그인 셸은 bash**로 둔다.
+
+- **POSIX 호환** — 여러 서버를 ssh로 오가며 스크립트를 돌리는 환경. fish는 비-POSIX라
+  `source some.sh`·`.bashrc` 스니펫이 안 통해 "어디서나 똑같이 동작"이 깨진다.
+- **어디에나 기본 탑재** — Rocky·Ubuntu·FreeBSD 전부 bash 기본. fish는 별도 설치.
+- **예쁜 건 starship이 담당** — fish를 쓰는 주 이유(프롬프트+완성)는 이미 starship+fzf로 bash에 얹었다.
+
+정리: **fish = 대화형 UX 최고, bash = 어디서나 똑같이 동작.** 그래서 로그인은 bash,
+쓰고 싶을 때 `fish`로 진입하는 하이브리드. 두 셸에 같은 프롬프트·별칭·래퍼를 배포해 경험을 맞췄다.
 
 ## 느렸던 것들, 왜 느렸나
 
