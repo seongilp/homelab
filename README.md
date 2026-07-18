@@ -16,12 +16,37 @@
 
 VM: FreeBSD 15.1-RELEASE + 16.0-CURRENT (prodesk libvirt/KVM, 커널 학습용)
 
+## 토폴로지
+
+```
+                    인터넷
+                      │
+                 [LG U+ GW] ──────── Tailscale (원격 접속)
+                      │
+              ┌───── 2.5G 스위치 ─────┐
+              │         │        │    │
+           ┌──┴──┐   ┌──┴──┐  ┌──┴──┐ └──┐(1G)
+           │ Mac │   │msg10p│  │prodesk│  │ ebs │
+           │2.5G │   │2.5G  │  │ 2.5G  │  │ 감시 허브
+           └─────┘   └──┬──┘  └───┬───┘  └──┬──┘
+            워크        ZFS 26T    │(libvirt)  │
+            스테이션   미러 2풀    │           │
+                                ┌─┴─┐       Beszel
+                          freebsd  fb-crnt   모니터링
+                          (15.1)  (CURRENT)   ← 5노드 감시
+
+  네트워크 이중화: msg10p·prodesk·Mac 모두 주 링크(2.5G) 죽으면 자동 폴백
+  백업 흐름: Mac ─rsync/restic→ msg10p(로컬) ─restic→ 클라우드(오프사이트)
+```
+
 ## 문서
 
 - [network.md](docs/network.md) — 2.5G 멀티기가 전환, 링크 이중화, NFS 자동복구
 - [storage.md](docs/storage.md) — ZFS 풀 레이아웃, 튜닝(ARC/recordsize), 디스크 검증
 - [backup.md](docs/backup.md) — 3-2-1 다층 백업 (rsync + restic + kopia + 오프사이트)
+- [monitoring.md](docs/monitoring.md) — Beszel 대시보드 + 텔레그램 알림 (NAT 뒤 VM 연결)
 - [shell.md](docs/shell.md) — bash + starship 공통 셸 환경 (+ fish 선택)
+- [freebsd.md](docs/freebsd.md) — FreeBSD 학습 랩 (buildworld·jail·커널 모듈)
 
 ## 원칙으로 삼은 것들
 
