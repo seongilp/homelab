@@ -47,6 +47,7 @@ VM: FreeBSD 15.1-RELEASE + 16.0-CURRENT (prodesk libvirt/KVM, 커널 학습용)
 - [monitoring.md](docs/monitoring.md) — Beszel 대시보드 + 텔레그램 알림 (NAT 뒤 VM 연결)
 - [shell.md](docs/shell.md) — bash + starship 공통 셸 환경 (+ fish 선택)
 - [freebsd.md](docs/freebsd.md) — FreeBSD 학습 랩 (buildworld·jail·커널 모듈)
+- [emacs.md](docs/emacs.md) — Emacs/Doom/Magit 치트시트 (커널 소스 탐색·git 작업)
 
 ## 원칙으로 삼은 것들
 
