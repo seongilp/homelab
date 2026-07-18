@@ -11,8 +11,8 @@
 |------|----------|------|-----|----------|
 | **msg10p** | HP ProLiant MicroServer Gen10+ · Xeon E-2224 (4c) · 64GB ECC · SK hynix 1TB NVMe(root) + HGST 10TB×2 + WD Red 4TB×2 (ZFS 미러) | 스토리지 / 백업 서버 | Rocky Linux 9.8 | 2.5G + 1G 자동 페일오버 |
 | **prodesk** | HP EliteDesk 800 G6 Mini · i9-10900 (10c/20t) · 64GB · Crucial MX500 1TB(root) + WD SN750 500GB NVMe(ZFS) | 컴퓨트 / 랩 | Ubuntu 26.04 LTS | 2.5G 유선 + Wi-Fi 폴백 |
-| **ebs** | Lenovo ThinkCentre M72e Tiny · i3-3220T (2c/4t) · 16GB · SSD 240GB | 상시 서비스 (봇·러너·터널) | Ubuntu 26.04 LTS | 1G |
-| **Mac** | MacBook Pro (Mac16,8) · **M4 Pro** (14c: 10P+4E) · 48GB · SSD 1TB | 워크스테이션 | macOS 26.4 | 2.5G (Thunderbolt) + Wi-Fi 폴백 |
+| **ebs** | Lenovo ThinkCentre M72e Tiny · i3-3220T (2c/4t) · 16GB · Crucial M500 240GB SATA SSD | 상시 서비스 (봇·러너·터널) | Ubuntu 26.04 LTS | 1G |
+| **Mac** | MacBook Pro (Mac16,8) · **M4 Pro** (14c: 10P+4E) · 48GB · Apple SSD AP1024Z (1TB NVMe) | 워크스테이션 | macOS 26.4 | 2.5G (Thunderbolt) + Wi-Fi 폴백 |
 
 VM: FreeBSD 15.1-RELEASE + 16.0-CURRENT (prodesk libvirt/KVM, 커널 학습용)
 
@@ -21,7 +21,7 @@ VM: FreeBSD 15.1-RELEASE + 16.0-CURRENT (prodesk libvirt/KVM, 커널 학습용)
 - [network.md](docs/network.md) — 2.5G 멀티기가 전환, 링크 이중화, NFS 자동복구
 - [storage.md](docs/storage.md) — ZFS 풀 레이아웃, 튜닝(ARC/recordsize), 디스크 검증
 - [backup.md](docs/backup.md) — 3-2-1 다층 백업 (rsync + restic + kopia + 오프사이트)
-- [shell.md](docs/shell.md) — bash + starship 표준 셸 환경
+- [shell.md](docs/shell.md) — bash + starship 공통 셸 환경 (+ fish 선택)
 
 ## 원칙으로 삼은 것들
 
