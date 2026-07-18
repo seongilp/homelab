@@ -105,3 +105,30 @@ git을 "외워서 치는 명령어"에서 **"보면서 누르는 인터페이스
 1. Doom `~/.config/doom/init.el`에 `(lsp +eglot)` + `(cc +lsp)` 주석 풀렸나 → `doom sync` → **Emacs 완전 재시작** (이게 1순위)
 2. `/usr/src/compile_commands.json` 존재 확인 (모듈 빌드를 `intercept-build`로 캡처해 생성, `-I.`은 obj 절대경로로 치환해 위치 독립)
 3. `M-x lsp-` 쳤을 때 `lsp-command-map` 하나만 뜨면 = LSP 모듈 미로드 → 1번
+
+## Org mode (메모·할일·일정)
+
+`.org` 확장자면 자동 인식. 파일 안엔 `*`로 시작하는 제목만 있으면 됨(`#+TITLE` 등은 선택).
+
+```
+* 프로젝트          ← 최상위 (TAB으로 접기/펼치기)
+** TODO 할 일  :태그:  ← 할일 + 태그
+** DONE 끝낸 일
+   SCHEDULED: <2026-07-20>   ← 날짜 = 아젠다에 자동 등록
+   - [ ] 세부 체크박스
+```
+
+| 키 | 동작 |
+|----|------|
+| `TAB` | 제목 접기/펼치기 |
+| `SPC TAB` (`S-TAB`) | 문서 전체 접기/펼치기 |
+| **`SPC m t`** | TODO ↔ DONE 상태 토글 |
+| `SPC m d s` | 날짜(SCHEDULED) 넣기 |
+| `C-c C-c` | 체크박스 `[ ]`↔`[X]`, 코드블록 실행(Babel) |
+| **`SPC o A`** → `a`/`t` | 아젠다 (a=주간달력, t=전체 TODO 목록) |
+
+**아젠다 화면 안에서:** `t` 바로 완료토글(원본도 수정) · `RET` 원본 점프 · `r` 새로고침 · `q` 닫기
+
+> ⚠️ **함정**: `SPC o A`가 비어 보이면 = 그 파일이 `org-agenda-files`에 없는 것.
+> 아젠다는 **등록된 파일만** 뒤진다(파일에 TODO가 많아도 등록 안 됐으면 0개).
+> config.el에 `(setq org-agenda-files (list "~/" "~/org/" "~/work/"))` → `SPC : doom/reload`.
