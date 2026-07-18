@@ -2,14 +2,45 @@
 
 ## 풀 레이아웃
 
-메인 스토리지 서버(msg10p)는 두 개의 ZFS 미러 풀로 구성.
+### msg10p — 두 미러 풀 (장애 격리)
 
 ```
-zpool  (HGST 10TB × 2 미러, CMR)   — 주 데이터 / NAS 백업 / 사진 아카이브
-zpool2 (WD Red 4TB × 2 미러, CMR)  — 부 데이터 (별도 풀로 분리해 장애 격리)
+zpool   9.09T  (75% 사용)   — 주 데이터 / NAS 백업 / 사진 아카이브
+└─ mirror-0
+   ├─ HGST HUH721010ALE604  (10TB, CMR)
+   └─ HGST HUH721010ALE604  (10TB, CMR)
+
+zpool2  3.62T  (49% 사용)   — 부 데이터 (외장드라이브 아카이브)
+└─ mirror-0
+   ├─ WD Red Plus WD40EFZX  (4TB, CMR)
+   └─ WD Red Plus WD40EFZX  (4TB, CMR)
+
+nvme0n1 (SK hynix 1TB)      — OS(root) 전용, 풀 미포함
 ```
 
 두 풀을 **일부러 분리**했다. 오래된 중고 디스크(zpool2)가 죽어도 주 백업 풀(zpool)은 무사하도록.
+
+**주요 데이터셋**
+
+| 데이터셋 | 용량 | recordsize | 압축 | 용도 |
+|----------|------|-----------|------|------|
+| `zpool/rsync` | 5.34T | 128K | lz4 | NAS 백업 미러 |
+| `zpool/macbook` | 463G | 128K | zstd | Mac restic/kopia 리포 |
+| `zpool/photos` | 283G | **1M** | on | 사진 원본 아카이브 |
+| `zpool/backup` | 442G | 128K | lz4 | 각종 백업 |
+| `zpool2/mac_backup` | 1.12T | 128K | lz4 | 외장드라이브 미러 |
+| `zpool2/orico` | 686G | 128K | lz4 | 외장드라이브 미러 |
+
+### prodesk — NVMe 단일 풀
+
+```
+data  464G  (9% 사용)  — 컴퓨트 작업 공간 / VM
+└─ nvme (WD Black SN750 500GB)   ※ 단일 vdev — 체크섬 감지만, 복구는 백업 의존
+sda   (Crucial MX500 1TB, SATA)  — Ubuntu 시스템
+```
+
+단일 디스크 풀이라 자가 복구(미러)는 없지만 체크섬으로 손상은 감지된다.
+중요 데이터는 msg10p로 백업. (원래 Windows 듀얼부트였으나 밀고 ZFS로 전환)
 
 ## 디스크 검증이 먼저
 
