@@ -1,0 +1,101 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{{ page.title | default: site.title }}</title>
+<meta name="description" content="{{ site.description }}">
+<style>
+:root {
+  --fg: #1a1a1a;
+  --muted: #6a6a6a;
+  --bg: #ffffff;
+  --border: #e6e6e6;
+  --code-bg: #f6f6f6;
+  --link: #0b7285;
+  --accent: #0b7285;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --fg: #e4e4e4;
+    --muted: #9a9a9a;
+    --bg: #17181a;
+    --border: #2c2e31;
+    --code-bg: #202225;
+    --link: #4bb3c9;
+    --accent: #4bb3c9;
+  }
+}
+* { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+body {
+  margin: 0;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Apple SD Gothic Neo", "Noto Sans KR", sans-serif;
+  font-size: 16px;
+  line-height: 1.7;
+  color: var(--fg);
+  background: var(--bg);
+}
+.wrap { max-width: 720px; margin: 0 auto; padding: 0 24px; }
+header.site {
+  border-bottom: 1px solid var(--border);
+  padding: 22px 0;
+  margin-bottom: 44px;
+}
+header.site .wrap { display: flex; align-items: baseline; justify-content: space-between; gap: 16px; }
+header.site a.brand { font-weight: 700; font-size: 17px; color: var(--fg); text-decoration: none; letter-spacing: -0.01em; }
+header.site nav a { color: var(--muted); text-decoration: none; font-size: 14px; margin-left: 16px; }
+header.site nav a:hover { color: var(--accent); }
+main { padding-bottom: 80px; }
+h1, h2, h3 { line-height: 1.3; letter-spacing: -0.02em; font-weight: 700; }
+h1 { font-size: 30px; margin: 0 0 8px; }
+h2 { font-size: 21px; margin: 44px 0 14px; padding-top: 8px; }
+h3 { font-size: 17px; margin: 28px 0 10px; color: var(--fg); }
+p, li { color: var(--fg); }
+a { color: var(--link); text-decoration: none; }
+a:hover { text-decoration: underline; }
+.muted, blockquote { color: var(--muted); }
+blockquote {
+  margin: 18px 0; padding: 2px 0 2px 16px;
+  border-left: 2px solid var(--border); font-size: 15px;
+}
+code {
+  font-family: "SF Mono", ui-monospace, "JetBrains Mono", Menlo, monospace;
+  font-size: 0.86em; background: var(--code-bg);
+  padding: 1px 5px; border-radius: 4px;
+}
+pre {
+  background: var(--code-bg); border: 1px solid var(--border);
+  border-radius: 8px; padding: 14px 16px; overflow-x: auto; font-size: 13px; line-height: 1.55;
+}
+pre code { background: none; padding: 0; font-size: inherit; }
+table { border-collapse: collapse; width: 100%; margin: 18px 0; font-size: 14px; display: block; overflow-x: auto; }
+th, td { border: 1px solid var(--border); padding: 7px 11px; text-align: left; vertical-align: top; }
+th { background: var(--code-bg); font-weight: 600; }
+hr { border: none; border-top: 1px solid var(--border); margin: 40px 0; }
+ul, ol { padding-left: 22px; }
+li { margin: 3px 0; }
+footer.site { border-top: 1px solid var(--border); padding: 22px 0; color: var(--muted); font-size: 13px; }
+footer.site a { color: var(--muted); }
+</style>
+</head>
+<body>
+<header class="site">
+  <div class="wrap">
+    <a class="brand" href="{{ '/' | relative_url }}">homelab</a>
+    <nav>
+      <a href="{{ '/' | relative_url }}">개요</a>
+      <a href="https://github.com/seongilp/homelab">GitHub</a>
+    </nav>
+  </div>
+</header>
+<main>
+  <div class="wrap">
+    {{ content }}
+  </div>
+</main>
+<footer class="site">
+  <div class="wrap">seongilp / homelab</div>
+</footer>
+</body>
+</html>

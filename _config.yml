@@ -1,3 +1,7 @@
 title: homelab
 description: 개인 홈랩 구성 기록 — 스토리지·컴퓨트·백업·네트워크
-theme: jekyll-theme-cayman
+defaults:
+  - scope:
+      path: ""
+    values:
+      layout: default
