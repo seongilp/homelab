@@ -9,10 +9,10 @@
 
 | 노드 | 하드웨어 | 역할 | OS | 네트워크 |
 |------|----------|------|-----|----------|
-| **msg10p** | HP ProLiant MicroServer Gen10+ (Xeon E-2224, 64GB ECC) | 스토리지 / 백업 서버 | Rocky Linux 9.8 | 2.5G + 1G 자동 페일오버 |
-| **prodesk** | HP EliteDesk 800 G6 (i9-10900, 64GB) | 컴퓨트 / 랩 | Ubuntu 26.04 LTS | 2.5G 유선 + Wi-Fi 폴백 |
-| **ebs** | Lenovo ThinkCentre M72e (i3-3220T, 16GB) | 상시 서비스 (봇·러너·터널) | Ubuntu 26.04 LTS | 1G |
-| **Mac** | MacBook Pro | 워크스테이션 | macOS | 2.5G (Thunderbolt) |
+| **msg10p** | HP ProLiant MicroServer Gen10+ · Xeon E-2224 (4c) · 64GB ECC · NVMe(root) + HDD 미러 26TB | 스토리지 / 백업 서버 | Rocky Linux 9.8 | 2.5G + 1G 자동 페일오버 |
+| **prodesk** | HP EliteDesk 800 G6 Mini · i9-10900 (10c/20t) · 64GB · SSD 1TB + NVMe 500GB(ZFS) | 컴퓨트 / 랩 | Ubuntu 26.04 LTS | 2.5G 유선 + Wi-Fi 폴백 |
+| **ebs** | Lenovo ThinkCentre M72e Tiny · i3-3220T (2c/4t) · 16GB · SSD 240GB | 상시 서비스 (봇·러너·터널) | Ubuntu 26.04 LTS | 1G |
+| **Mac** | MacBook Pro (Mac16,8) · **M4 Pro** (14c: 10P+4E) · 48GB · SSD 1TB | 워크스테이션 | macOS 26.4 | 2.5G (Thunderbolt) + Wi-Fi 폴백 |
 
 VM: FreeBSD 15.1-RELEASE + 16.0-CURRENT (prodesk libvirt/KVM, 커널 학습용)
 
