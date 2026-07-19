@@ -132,3 +132,54 @@ git을 "외워서 치는 명령어"에서 **"보면서 누르는 인터페이스
 > ⚠️ **함정**: `SPC o A`가 비어 보이면 = 그 파일이 `org-agenda-files`에 없는 것.
 > 아젠다는 **등록된 파일만** 뒤진다(파일에 TODO가 많아도 등록 안 됐으면 0개).
 > config.el에 `(setq org-agenda-files (list "~/" "~/org/" "~/work/"))` → `SPC : doom/reload`.
+
+### Babel — 문서 안에서 코드 실행 (진짜 강력한 부분)
+
+org 파일 안의 코드 블록을 **커서 올리고 `C-c C-c`** 하면 실행되고 결과가 바로 아래 박힌다.
+Jupyter 노트북인데 언어·실행 위치 제약이 없는 버전. 학습 노트 + 실험 + 결과가 한 파일에.
+
+```
+#+begin_src sh :results output
+uname -a
+#+end_src
+```
+
+**킬러 기능 — `:dir`로 원격(SSH) 실행:** 블록 헤더에 `:dir /ssh:호스트:경로`를 주면
+그 코드가 **원격 서버에서** 실행된다. 커널 실험을 Mac의 노트에서 바로:
+
+```
+#+begin_src sh :dir /ssh:freebsd-dev:~/kernel/sysctl_demo
+make && sudo kldload ./hlab.ko && sysctl debug.hlab
+#+end_src
+```
+
+| 헤더 인자 | 뜻 |
+|----|------|
+| `:results output` | stdout을 결과로 (기본은 마지막 값) |
+| `:dir /ssh:host:path` | 원격 host의 path에서 실행 (TRAMP) |
+| `:dir /path` | 로컬 특정 디렉터리에서 |
+| `:var x=1` | 변수 주입 |
+| 언어: `sh` `python` `C` `emacs-lisp` … | src 블록 첫 단어 |
+
+> 처음 `C-c C-c` 하면 "이 코드 실행할까?" 물어봄 → `yes`. (`org-confirm-babel-evaluate`)
+> 학습용 예시가 `~/org/freebsd-kernel.org`에 있음 — sysctl 실습을 원격 실행으로 문서화.
+
+### Roam — 개념을 위키처럼 링크 (지식 그래프)
+
+`+roam` 모듈. 노트를 파일 단위로 만들고 `[[링크]]`로 이으면 지식이 그래프로 쌓인다.
+"sysctl", "시스템콜" 같은 개념을 노트로 만들어 연결 → 나중에 그래프로 전체 조망.
+
+| 키 | 동작 |
+|----|------|
+| **`SPC n r f`** | 노트 찾기/만들기 (이름 타이핑, 없으면 새로 생성) |
+| `SPC n r i` | 지금 커서 위치에 다른 노트 링크 삽입 |
+| `SPC n r b` | 이 노트를 링크한 다른 노트들(backlinks) 보기 |
+| **`SPC n r g`** | 지식 그래프 시각화 (graphviz 필요) |
+
+> 노트 저장 위치: `org-roam-directory`(기본 `~/org/roam`). 커널 개념들을 여기 쌓으면
+> "이 함수가 어느 서브시스템과 엮이나"가 링크로 드러난다 — committer 지망생용 2차 뇌.
+
+### 내보내기 (export)
+
+`SPC m e` → 메뉴에서 선택. `h h`=HTML, `l p`=PDF(LaTeX 필요), `m m`=Markdown.
+학습 노트를 블로그·문서로 뽑을 때.
