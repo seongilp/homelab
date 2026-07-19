@@ -1,0 +1,364 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+  <meta charset="utf-8" />
+  <meta name="generator" content="pandoc 3.10" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes" />
+  <title>network — homelab</title>
+  <style>
+    /* Default styles provided by pandoc.
+    ** See https://pandoc.org/MANUAL.html#variables-for-html for config info.
+    */
+    html {
+      color: #1a1a1a;
+      background-color: #fdfdfd;
+    }
+    body {
+      margin: 0 auto;
+      max-width: 36em;
+      padding-left: 50px;
+      padding-right: 50px;
+      padding-top: 50px;
+      padding-bottom: 50px;
+      hyphens: auto;
+      overflow-wrap: break-word;
+      text-rendering: optimizeLegibility;
+      font-kerning: normal;
+    }
+    @media (max-width: 600px) {
+      body {
+        font-size: 0.9em;
+        padding: 12px;
+      }
+      h1 {
+        font-size: 1.8em;
+      }
+    }
+    @media print {
+      html {
+        background-color: white;
+      }
+      body {
+        background-color: transparent;
+        color: black;
+        font-size: 12pt;
+      }
+      p, h2, h3 {
+        orphans: 3;
+        widows: 3;
+      }
+      h2, h3, h4 {
+        page-break-after: avoid;
+      }
+    }
+    p {
+      margin: 1em 0;
+    }
+    a {
+      color: #1a1a1a;
+    }
+    a:visited {
+      color: #1a1a1a;
+    }
+    img {
+      max-width: 100%;
+    }
+    svg {
+      height: auto;
+      max-width: 100%;
+    }
+    h1, h2, h3, h4, h5, h6 {
+      margin-top: 1.4em;
+    }
+    h5, h6 {
+      font-size: 1em;
+      font-style: italic;
+    }
+    h6 {
+      font-weight: normal;
+    }
+    ol, ul {
+      padding-left: 1.7em;
+      margin-top: 1em;
+    }
+    li > ol, li > ul {
+      margin-top: 0;
+    }
+    blockquote {
+      margin: 1em 0 1em 1.7em;
+      padding-left: 1em;
+      border-left: 2px solid #e6e6e6;
+      color: #606060;
+    }
+    code {
+      white-space: pre-wrap;
+      font-family: Menlo, Monaco, Consolas, 'Lucida Console', monospace;
+      font-size: 85%;
+      margin: 0;
+      hyphens: manual;
+    }
+    pre {
+      margin: 1em 0;
+      overflow: auto;
+    }
+    pre code {
+      padding: 0;
+      overflow: visible;
+      overflow-wrap: normal;
+    }
+    .sourceCode {
+     background-color: transparent;
+     overflow: visible;
+    }
+    hr {
+      border: none;
+      border-top: 1px solid #1a1a1a;
+      height: 1px;
+      margin: 1em 0;
+    }
+    table {
+      margin: 1em 0;
+      border-collapse: collapse;
+      width: 100%;
+      overflow-x: auto;
+      display: block;
+      font-variant-numeric: lining-nums tabular-nums;
+    }
+    table caption {
+      margin-bottom: 0.75em;
+    }
+    tbody {
+      margin-top: 0.5em;
+      border-top: 1px solid #1a1a1a;
+      border-bottom: 1px solid #1a1a1a;
+    }
+    th {
+      border-top: 1px solid #1a1a1a;
+      padding: 0.25em 0.5em 0.25em 0.5em;
+    }
+    td {
+      padding: 0.125em 0.5em 0.25em 0.5em;
+    }
+    header {
+      margin-bottom: 4em;
+      text-align: center;
+    }
+    #TOC li {
+      list-style: none;
+    }
+    #TOC ul {
+      padding-left: 1.3em;
+    }
+    #TOC > ul {
+      padding-left: 0;
+    }
+    #TOC a:not(:hover) {
+      text-decoration: none;
+    }
+    span.smallcaps{font-variant: small-caps;}
+    div.columns{display: flex; gap: 1.5em;}
+    div.column{flex: auto;}
+    @media screen {
+    div.columns{gap: min(4vw, 1.5em);}
+    div.column{overflow-x: auto;}
+    }
+    div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+    /* The extra [class] is a hack that increases specificity enough to
+       override a similar rule in reveal.js */
+    ul.task-list[class]{list-style: none;}
+    ul.task-list li input[type="checkbox"] {
+      font-size: inherit;
+      width: 0.8em;
+      margin: 0 0.8em 0.2em -1.6em;
+      vertical-align: middle;
+    }
+    .display.math{display: block; text-align: center; margin: 0.5rem auto;}
+    /* CSS for syntax highlighting */
+    html { -webkit-text-size-adjust: 100%; }
+    pre > code.sourceCode { white-space: pre; position: relative; }
+    pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+    pre > code.sourceCode > span:empty { height: 1.2em; }
+    .sourceCode { overflow: visible; }
+    code.sourceCode > span { color: inherit; text-decoration: inherit; }
+    div.sourceCode { margin: 1em 0; }
+    pre.sourceCode { margin: 0; }
+    @media screen {
+    div.sourceCode { overflow: auto; }
+    }
+    @media print {
+    pre > code.sourceCode { white-space: pre-wrap; }
+    pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+    }
+    pre.numberSource code
+      { counter-reset: source-line 0; }
+    pre.numberSource code > span
+      { position: relative; left: -4em; counter-increment: source-line; }
+    pre.numberSource code > span > a:first-child::before
+      { content: counter(source-line);
+        position: relative; left: -1em; text-align: right; vertical-align: baseline;
+        border: none; display: inline-block;
+        -webkit-touch-callout: none; -webkit-user-select: none;
+        -khtml-user-select: none; -moz-user-select: none;
+        -ms-user-select: none; user-select: none;
+        padding: 0 4px; width: 4em;
+        color: #aaaaaa;
+      }
+    pre.numberSource { margin-left: 3em; border-left: 1px solid #aaaaaa;  padding-left: 4px; }
+    div.sourceCode
+      {   }
+    @media screen {
+    pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+    }
+    code span.al { color: #ff0000; font-weight: bold; } /* Alert */
+    code span.an { color: #60a0b0; font-weight: bold; font-style: italic; } /* Annotation */
+    code span.at { color: #7d9029; } /* Attribute */
+    code span.bn { color: #40a070; } /* BaseN */
+    code span.bu { color: #008000; } /* BuiltIn */
+    code span.cf { color: #007020; font-weight: bold; } /* ControlFlow */
+    code span.ch { color: #4070a0; } /* Char */
+    code span.cn { color: #880000; } /* Constant */
+    code span.co { color: #60a0b0; font-style: italic; } /* Comment */
+    code span.cv { color: #60a0b0; font-weight: bold; font-style: italic; } /* CommentVar */
+    code span.do { color: #ba2121; font-style: italic; } /* Documentation */
+    code span.dt { color: #902000; } /* DataType */
+    code span.dv { color: #40a070; } /* DecVal */
+    code span.er { color: #ff0000; font-weight: bold; } /* Error */
+    code span.ex { } /* Extension */
+    code span.fl { color: #40a070; } /* Float */
+    code span.fu { color: #06287e; } /* Function */
+    code span.im { color: #008000; font-weight: bold; } /* Import */
+    code span.in { color: #60a0b0; font-weight: bold; font-style: italic; } /* Information */
+    code span.kw { color: #007020; font-weight: bold; } /* Keyword */
+    code span.op { color: #666666; } /* Operator */
+    code span.ot { color: #007020; } /* Other */
+    code span.pp { color: #bc7a00; } /* Preprocessor */
+    code span.sc { color: #4070a0; } /* SpecialChar */
+    code span.ss { color: #bb6688; } /* SpecialString */
+    code span.st { color: #4070a0; } /* String */
+    code span.va { color: #19177c; } /* Variable */
+    code span.vs { color: #4070a0; } /* VerbatimString */
+    code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warning */
+  </style>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <style>
+  :root{--fg:#1f2328;--muted:#656d76;--bg:#ffffff;--soft:#f6f8fa;--border:#d0d7de;--link:#0969da;--accent:#0550ae}
+  @media(prefers-color-scheme:dark){:root{--fg:#e6edf3;--muted:#8b949e;--bg:#0d1117;--soft:#161b22;--border:#30363d;--link:#4493f8;--accent:#79c0ff}}
+  *{box-sizing:border-box}
+  /* pandoc 기본 템플릿 스타일 무력화 (body max-width:36em / html 흰배경 / padding:50px) */
+  html{background:var(--bg)!important;color:var(--fg)!important;min-height:100%}
+  body{margin:0!important;padding:0!important;max-width:none!important;min-height:100vh;width:100%;
+   background:var(--bg)!important;color:var(--fg);
+   font-family:-apple-system,'Apple SD Gothic Neo','Pretendard',BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;
+   font-size:19px;line-height:1.75;-webkit-font-smoothing:antialiased}
+  nav.top{position:sticky;top:0;background:var(--soft);border-bottom:1px solid var(--border);
+   padding:14px 28px;display:flex;flex-wrap:wrap;gap:8px 20px;align-items:center;z-index:10}
+  nav.top .brand{font-weight:700;margin-right:10px;font-size:19px}
+  nav.top a{color:var(--muted);text-decoration:none;font-size:16px;padding:4px 8px;border-radius:6px}
+  nav.top a:hover{color:var(--fg);background:var(--bg)}
+  /* pandoc은 <main> 없이 본문을 body 직속에 둠 → body 자식(nav·footer 제외)을 가운데 읽기컬럼으로 */
+  body>*:not(nav):not(footer){max-width:960px;margin-left:auto;margin-right:auto;padding-left:28px;padding-right:28px}
+  body>h1.title{margin-top:36px}
+  h1,h2,h3{line-height:1.25;margin-top:1.7em}
+  h1{font-size:2.2em;border-bottom:1px solid var(--border);padding-bottom:.3em}
+  h2{font-size:1.65em;border-bottom:1px solid var(--border);padding-bottom:.3em}
+  h3{font-size:1.3em}
+  a{color:var(--link)}
+  code{background:var(--soft);padding:.15em .4em;border-radius:6px;font-size:.9em;
+   font-family:'SF Mono',ui-monospace,Menlo,Consolas,monospace}
+  pre{background:var(--soft);border:1px solid var(--border);border-radius:10px;padding:16px 18px;overflow:auto;font-size:.92em}
+  pre code{background:none;padding:0;font-size:1em}
+  table{border-collapse:collapse;width:100%;margin:1.1em 0;font-size:.97em}
+  th,td{border:1px solid var(--border);padding:9px 14px;text-align:left}
+  th{background:var(--soft)}
+  blockquote{margin:1em 0;padding:.3em 1.1em;color:var(--muted);border-left:4px solid var(--border)}
+  hr{border:none;border-top:1px solid var(--border);margin:2em 0}
+  li{margin:.25em 0}
+  footer{max-width:960px;margin:0 auto;padding:24px 28px;color:var(--muted);font-size:15px;border-top:1px solid var(--border)}
+  </style>
+</head>
+<body>
+<nav class="top"><span class="brand">homelab</span>
+<a href="index.html">Home</a>
+<a href="backup.html">backup</a>
+<a href="emacs.html">emacs</a>
+<a href="freebsd.html">freebsd</a>
+<a href="monitoring.html">monitoring</a>
+<a href="network.html">network</a>
+<a href="shell.html">shell</a>
+<a href="storage.html">storage</a>
+</nav>
+<header id="title-block-header">
+<h1 class="title">network — homelab</h1>
+</header>
+<h1 id="network">Network</h1>
+<h2 id="멀티기가-전환-1g--25g">멀티기가 전환 (1G → 2.5G)</h2>
+<p>USB 2.5G 이더넷 어댑터(Realtek RTL8156/8157)로 주요 노드를 2.5G로
+올렸다. 스위치의 RJ45 포트가 2.5G라, 5G 칩(8157)을 꽂아도 링크는 2.5G로
+협상된다 — <strong>병목은 드라이버가 아니라 스위치</strong>이므로 범용
+드라이버(cdc_ncm)로도 라인레이트가 나온다.</p>
+<table>
+<thead>
+<tr>
+<th>구간</th>
+<th>실측</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Mac ↔︎ prodesk</td>
+<td>2.34 Gbps (재전송 0)</td>
+</tr>
+<tr>
+<td>Mac ↔︎ msg10p</td>
+<td>2.35 Gbps</td>
+</tr>
+<tr>
+<td>prodesk ↔︎ msg10p</td>
+<td>2.35 Gbps</td>
+</tr>
+</tbody>
+</table>
+<h3 id="교훈-대역폭--지연">교훈: 대역폭 ≠ 지연</h3>
+<p>Wi-Fi(802.11ax, 신호 -45dBm)로도 링크 속도는 960Mbps였지만,
+<strong>왕복 지연(RTT)이 16ms로 출렁여서</strong> 파일 많은 작업이
+느렸다. 유선 전환 후 RTT &lt;1ms. "5GHz니까 빠르다"는 대역폭 얘기일 뿐,
+메타데이터 왕복이 잦은 워크로드는 지연이 지배한다.</p>
+<h2 id="링크-이중화-자동-페일오버">링크 이중화 (자동 페일오버)</h2>
+<p>물리적으로 다른 두 NIC을 두고 route metric으로 우선순위를 준다. 주
+링크가 죽으면 자동 전환.</p>
+<pre><code># msg10p — USB 2.5G 주력 / 내장 1G 대기
+nmcli con mod &quot;&lt;usb&gt;&quot;  ipv4.route-metric 100   # 우선
+nmcli con mod &quot;eno1&quot;   ipv4.route-metric 200   # 대기</code></pre>
+<ul>
+<li><strong>msg10p</strong>: USB 2.5G (metric 100) → 내장 1G (metric
+200)</li>
+<li><strong>prodesk</strong>: 유선 2.5G (metric 100) → Wi-Fi (metric
+600) — 리눅스가 유선을 자동 우선</li>
+</ul>
+<h2 id="nfs-자동복구-워치독">NFS 자동복구 워치독</h2>
+<p>NFSv3는 연결이 한 번 끊기면 스스로 복구하지 않는다. 서버 네트워크를
+손볼 때마다 마운트가 죽는 걸 막기 위해 클라이언트(Mac)에 워치독을
+둔다.</p>
+<div class="sourceCode" id="cb2"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="co"># 60초마다 launchd가 실행 — 마운트가 죽었으면 빠른 경로로 재마운트</span></span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> share <span class="kw">in</span> zpool zpool2<span class="kw">;</span> <span class="cf">do</span></span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a>    <span class="va">mp</span><span class="op">=</span><span class="st">&quot;</span><span class="va">$BASE</span><span class="st">/</span><span class="va">$share</span><span class="st">&quot;</span></span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a>    <span class="fu">mount</span> <span class="kw">|</span> <span class="fu">grep</span> <span class="at">-q</span> <span class="st">&quot; </span><span class="va">$mp</span><span class="st"> &quot;</span> <span class="kw">&amp;&amp;</span> <span class="fu">ls</span> <span class="st">&quot;</span><span class="va">$mp</span><span class="st">&quot;</span> <span class="op">&gt;</span>/dev/null <span class="dv">2</span><span class="op">&gt;&amp;</span><span class="dv">1</span> <span class="kw">&amp;&amp;</span> <span class="cf">continue</span></span>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a>    <span class="fu">umount</span> <span class="at">-f</span> <span class="st">&quot;</span><span class="va">$mp</span><span class="st">&quot;</span> <span class="dv">2</span><span class="op">&gt;</span>/dev/null</span>
+<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a>    <span class="fu">mount</span> <span class="at">-t</span> nfs <span class="at">-o</span> nolocks,locallocks,nfc,rsize=65536,wsize=65536,soft,intr <span class="dt">\</span></span>
+<span id="cb2-7"><a href="#cb2-7" aria-hidden="true" tabindex="-1"></a>        <span class="st">&quot;</span><span class="va">$FAST_IP</span><span class="st">:/</span><span class="va">$share</span><span class="st">&quot;</span> <span class="st">&quot;</span><span class="va">$mp</span><span class="st">&quot;</span></span>
+<span id="cb2-8"><a href="#cb2-8" aria-hidden="true" tabindex="-1"></a><span class="cf">done</span></span></code></pre></div>
+<p>죽은 마운트를 ~10초 내 자동 복구. macOS의 autofs는 SIP 환경에서
+다루기 까다로워 launchd StartInterval 워치독이 더 단순하고 확실했다.</p>
+<h3 id="macos-nfs-클라이언트-주의점">macOS NFS 클라이언트 주의점</h3>
+<p><code>/etc/nfs.conf</code>:</p>
+<pre><code>nfs.client.mount.options = locallocks,nfc,rsize=65536,wsize=65536</code></pre>
+<ul>
+<li><code>locallocks</code> 없으면 Quick Look/sips가 NFS 잠금에서 실패
+(<code>nolocks</code>는 오히려 error 13)</li>
+<li><code>nfc</code> 없으면 Apple 프레임워크가 <strong>한글
+경로만</strong> 실패 — 서버는 NFC인데 NFD로 조회하기 때문</li>
+</ul>
+<footer>Generated from network.md · homelab</footer>
+</body>
+</html>

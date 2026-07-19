@@ -1,0 +1,313 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+  <meta charset="utf-8" />
+  <meta name="generator" content="pandoc 3.10" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes" />
+  <title>backup — homelab</title>
+  <style>
+    /* Default styles provided by pandoc.
+    ** See https://pandoc.org/MANUAL.html#variables-for-html for config info.
+    */
+    html {
+      color: #1a1a1a;
+      background-color: #fdfdfd;
+    }
+    body {
+      margin: 0 auto;
+      max-width: 36em;
+      padding-left: 50px;
+      padding-right: 50px;
+      padding-top: 50px;
+      padding-bottom: 50px;
+      hyphens: auto;
+      overflow-wrap: break-word;
+      text-rendering: optimizeLegibility;
+      font-kerning: normal;
+    }
+    @media (max-width: 600px) {
+      body {
+        font-size: 0.9em;
+        padding: 12px;
+      }
+      h1 {
+        font-size: 1.8em;
+      }
+    }
+    @media print {
+      html {
+        background-color: white;
+      }
+      body {
+        background-color: transparent;
+        color: black;
+        font-size: 12pt;
+      }
+      p, h2, h3 {
+        orphans: 3;
+        widows: 3;
+      }
+      h2, h3, h4 {
+        page-break-after: avoid;
+      }
+    }
+    p {
+      margin: 1em 0;
+    }
+    a {
+      color: #1a1a1a;
+    }
+    a:visited {
+      color: #1a1a1a;
+    }
+    img {
+      max-width: 100%;
+    }
+    svg {
+      height: auto;
+      max-width: 100%;
+    }
+    h1, h2, h3, h4, h5, h6 {
+      margin-top: 1.4em;
+    }
+    h5, h6 {
+      font-size: 1em;
+      font-style: italic;
+    }
+    h6 {
+      font-weight: normal;
+    }
+    ol, ul {
+      padding-left: 1.7em;
+      margin-top: 1em;
+    }
+    li > ol, li > ul {
+      margin-top: 0;
+    }
+    blockquote {
+      margin: 1em 0 1em 1.7em;
+      padding-left: 1em;
+      border-left: 2px solid #e6e6e6;
+      color: #606060;
+    }
+    code {
+      white-space: pre-wrap;
+      font-family: Menlo, Monaco, Consolas, 'Lucida Console', monospace;
+      font-size: 85%;
+      margin: 0;
+      hyphens: manual;
+    }
+    pre {
+      margin: 1em 0;
+      overflow: auto;
+    }
+    pre code {
+      padding: 0;
+      overflow: visible;
+      overflow-wrap: normal;
+    }
+    .sourceCode {
+     background-color: transparent;
+     overflow: visible;
+    }
+    hr {
+      border: none;
+      border-top: 1px solid #1a1a1a;
+      height: 1px;
+      margin: 1em 0;
+    }
+    table {
+      margin: 1em 0;
+      border-collapse: collapse;
+      width: 100%;
+      overflow-x: auto;
+      display: block;
+      font-variant-numeric: lining-nums tabular-nums;
+    }
+    table caption {
+      margin-bottom: 0.75em;
+    }
+    tbody {
+      margin-top: 0.5em;
+      border-top: 1px solid #1a1a1a;
+      border-bottom: 1px solid #1a1a1a;
+    }
+    th {
+      border-top: 1px solid #1a1a1a;
+      padding: 0.25em 0.5em 0.25em 0.5em;
+    }
+    td {
+      padding: 0.125em 0.5em 0.25em 0.5em;
+    }
+    header {
+      margin-bottom: 4em;
+      text-align: center;
+    }
+    #TOC li {
+      list-style: none;
+    }
+    #TOC ul {
+      padding-left: 1.3em;
+    }
+    #TOC > ul {
+      padding-left: 0;
+    }
+    #TOC a:not(:hover) {
+      text-decoration: none;
+    }
+    span.smallcaps{font-variant: small-caps;}
+    div.columns{display: flex; gap: 1.5em;}
+    div.column{flex: auto;}
+    @media screen {
+    div.columns{gap: min(4vw, 1.5em);}
+    div.column{overflow-x: auto;}
+    }
+    div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+    /* The extra [class] is a hack that increases specificity enough to
+       override a similar rule in reveal.js */
+    ul.task-list[class]{list-style: none;}
+    ul.task-list li input[type="checkbox"] {
+      font-size: inherit;
+      width: 0.8em;
+      margin: 0 0.8em 0.2em -1.6em;
+      vertical-align: middle;
+    }
+    .display.math{display: block; text-align: center; margin: 0.5rem auto;}
+  </style>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <style>
+  :root{--fg:#1f2328;--muted:#656d76;--bg:#ffffff;--soft:#f6f8fa;--border:#d0d7de;--link:#0969da;--accent:#0550ae}
+  @media(prefers-color-scheme:dark){:root{--fg:#e6edf3;--muted:#8b949e;--bg:#0d1117;--soft:#161b22;--border:#30363d;--link:#4493f8;--accent:#79c0ff}}
+  *{box-sizing:border-box}
+  /* pandoc 기본 템플릿 스타일 무력화 (body max-width:36em / html 흰배경 / padding:50px) */
+  html{background:var(--bg)!important;color:var(--fg)!important;min-height:100%}
+  body{margin:0!important;padding:0!important;max-width:none!important;min-height:100vh;width:100%;
+   background:var(--bg)!important;color:var(--fg);
+   font-family:-apple-system,'Apple SD Gothic Neo','Pretendard',BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;
+   font-size:19px;line-height:1.75;-webkit-font-smoothing:antialiased}
+  nav.top{position:sticky;top:0;background:var(--soft);border-bottom:1px solid var(--border);
+   padding:14px 28px;display:flex;flex-wrap:wrap;gap:8px 20px;align-items:center;z-index:10}
+  nav.top .brand{font-weight:700;margin-right:10px;font-size:19px}
+  nav.top a{color:var(--muted);text-decoration:none;font-size:16px;padding:4px 8px;border-radius:6px}
+  nav.top a:hover{color:var(--fg);background:var(--bg)}
+  /* pandoc은 <main> 없이 본문을 body 직속에 둠 → body 자식(nav·footer 제외)을 가운데 읽기컬럼으로 */
+  body>*:not(nav):not(footer){max-width:960px;margin-left:auto;margin-right:auto;padding-left:28px;padding-right:28px}
+  body>h1.title{margin-top:36px}
+  h1,h2,h3{line-height:1.25;margin-top:1.7em}
+  h1{font-size:2.2em;border-bottom:1px solid var(--border);padding-bottom:.3em}
+  h2{font-size:1.65em;border-bottom:1px solid var(--border);padding-bottom:.3em}
+  h3{font-size:1.3em}
+  a{color:var(--link)}
+  code{background:var(--soft);padding:.15em .4em;border-radius:6px;font-size:.9em;
+   font-family:'SF Mono',ui-monospace,Menlo,Consolas,monospace}
+  pre{background:var(--soft);border:1px solid var(--border);border-radius:10px;padding:16px 18px;overflow:auto;font-size:.92em}
+  pre code{background:none;padding:0;font-size:1em}
+  table{border-collapse:collapse;width:100%;margin:1.1em 0;font-size:.97em}
+  th,td{border:1px solid var(--border);padding:9px 14px;text-align:left}
+  th{background:var(--soft)}
+  blockquote{margin:1em 0;padding:.3em 1.1em;color:var(--muted);border-left:4px solid var(--border)}
+  hr{border:none;border-top:1px solid var(--border);margin:2em 0}
+  li{margin:.25em 0}
+  footer{max-width:960px;margin:0 auto;padding:24px 28px;color:var(--muted);font-size:15px;border-top:1px solid var(--border)}
+  </style>
+</head>
+<body>
+<nav class="top"><span class="brand">homelab</span>
+<a href="index.html">Home</a>
+<a href="backup.html">backup</a>
+<a href="emacs.html">emacs</a>
+<a href="freebsd.html">freebsd</a>
+<a href="monitoring.html">monitoring</a>
+<a href="network.html">network</a>
+<a href="shell.html">shell</a>
+<a href="storage.html">storage</a>
+</nav>
+<header id="title-block-header">
+<h1 class="title">backup — homelab</h1>
+</header>
+<h1 id="backup">Backup</h1>
+<h2 id="3-2-1-원칙">3-2-1 원칙</h2>
+<ul>
+<li><strong>3벌</strong> 이상의 사본 (원본 + 로컬 서버 + 클라우드)</li>
+<li><strong>2가지</strong> 다른 매체 (로컬 ZFS + 클라우드 오브젝트
+스토리지)</li>
+<li><strong>1벌</strong>은 오프사이트 (화재·도난·서버 전체 손실에도
+생존)</li>
+</ul>
+<h2 id="다층-구조">다층 구조</h2>
+<p>같은 데이터를 성격이 다른 여러 도구로 백업해 단일 실패점을
+없앤다.</p>
+<table>
+<thead>
+<tr>
+<th>계층</th>
+<th>도구</th>
+<th>성격</th>
+<th>대상</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td><strong>rsync</strong></td>
+<td>단순 미러 (그대로 복사)</td>
+<td>로컬 서버</td>
+</tr>
+<tr>
+<td>2</td>
+<td><strong>restic</strong></td>
+<td>중복제거 + 암호화 스냅샷</td>
+<td>로컬 서버 + 오프사이트</td>
+</tr>
+<tr>
+<td>3</td>
+<td><strong>kopia</strong></td>
+<td>두 번째 중복제거 엔진</td>
+<td>로컬 서버</td>
+</tr>
+<tr>
+<td>4</td>
+<td>클라우드</td>
+<td>S3 호환 오브젝트 스토리지</td>
+<td>오프사이트</td>
+</tr>
+</tbody>
+</table>
+<p>작업 파일(work/downloads)은 rsync + restic(로컬) + restic(오프사이트)
++ kopia = <strong>4중 백업</strong>.</p>
+<h2 id="자동화-원칙">자동화 원칙</h2>
+<ul>
+<li><strong>스케줄</strong>: launchd(macOS)/cron(Linux)로 새벽 시간대
+자동 실행</li>
+<li><strong>알림</strong>: 매 실행 결과를 메신저로 통보
+(성공/실패/스킵), 아침에 전체 요약 1건</li>
+<li><strong>외장 드라이브</strong>: 미연결 시 실패가 아니라
+<strong>스킵</strong> 처리 (이동식 매체 특성)</li>
+<li><strong>검증</strong>: 주 1회 <code>--checksum</code>으로 양쪽
+재해시해 silent corruption 감지</li>
+</ul>
+<h2 id="실전에서-부딪힌-것들">실전에서 부딪힌 것들</h2>
+<h3 id="파일명이-백업을-깨뜨린다">파일명이 백업을 깨뜨린다</h3>
+<ul>
+<li><strong>길이 초과</strong>: 초장문 제목 → Linux 255바이트 한계 초과
+→ rsync 실패. 다운로드 시점에 제목 길이를
+제한(<code>yt-dlp -o "%(title).150B..."</code>)해 원천 차단.</li>
+<li><strong>이모지</strong>: 파일명의 이모지 → rsync의 iconv가 변환 실패
+→ exit 23. BMP 밖 문자를 다운로드 시 제거.</li>
+<li><strong>NFD/NFC</strong>: macOS는 한글을 자모 분해(NFD)로 저장,
+Linux는 완성형(NFC). rsync <code>--iconv=utf-8-mac,utf-8</code> + 기존
+파일은 <code>convmv</code>로 일괄 정규화.</li>
+</ul>
+<h3 id="속도-튜닝은-병목-분리부터">속도 튜닝은 병목 분리부터</h3>
+<p>백업이 느릴 때 구간별 최대치를 각각 측정해 진짜 원인만 고쳤다.</p>
+<pre><code>소스(USB) → Mac → [네트워크] → [ssh 암호화] → [서버 디스크]
+  123MB/s          라인레이트     118MB/s         9.1GB/s</code></pre>
+<p>전부 정상인데 rsync 총합만 느렸다 → 범인은 <strong>Apple 기본
+openrsync</strong>(성능 반토막). brew rsync 절대경로로 교체 + Spotlight
+인덱싱 차단 + LAN에선 델타 대신 <code>-W</code>(통째 전송)</p>
+<ul>
+<li>구식 zlib 대신 zstd 압축 → <strong>54 → 107 MB/s (2×)</strong>.</li>
+</ul>
+<footer>Generated from backup.md · homelab</footer>
+</body>
+</html>

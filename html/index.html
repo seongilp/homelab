@@ -1,0 +1,338 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+  <meta charset="utf-8" />
+  <meta name="generator" content="pandoc 3.10" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes" />
+  <title>README — homelab</title>
+  <style>
+    /* Default styles provided by pandoc.
+    ** See https://pandoc.org/MANUAL.html#variables-for-html for config info.
+    */
+    html {
+      color: #1a1a1a;
+      background-color: #fdfdfd;
+    }
+    body {
+      margin: 0 auto;
+      max-width: 36em;
+      padding-left: 50px;
+      padding-right: 50px;
+      padding-top: 50px;
+      padding-bottom: 50px;
+      hyphens: auto;
+      overflow-wrap: break-word;
+      text-rendering: optimizeLegibility;
+      font-kerning: normal;
+    }
+    @media (max-width: 600px) {
+      body {
+        font-size: 0.9em;
+        padding: 12px;
+      }
+      h1 {
+        font-size: 1.8em;
+      }
+    }
+    @media print {
+      html {
+        background-color: white;
+      }
+      body {
+        background-color: transparent;
+        color: black;
+        font-size: 12pt;
+      }
+      p, h2, h3 {
+        orphans: 3;
+        widows: 3;
+      }
+      h2, h3, h4 {
+        page-break-after: avoid;
+      }
+    }
+    p {
+      margin: 1em 0;
+    }
+    a {
+      color: #1a1a1a;
+    }
+    a:visited {
+      color: #1a1a1a;
+    }
+    img {
+      max-width: 100%;
+    }
+    svg {
+      height: auto;
+      max-width: 100%;
+    }
+    h1, h2, h3, h4, h5, h6 {
+      margin-top: 1.4em;
+    }
+    h5, h6 {
+      font-size: 1em;
+      font-style: italic;
+    }
+    h6 {
+      font-weight: normal;
+    }
+    ol, ul {
+      padding-left: 1.7em;
+      margin-top: 1em;
+    }
+    li > ol, li > ul {
+      margin-top: 0;
+    }
+    blockquote {
+      margin: 1em 0 1em 1.7em;
+      padding-left: 1em;
+      border-left: 2px solid #e6e6e6;
+      color: #606060;
+    }
+    code {
+      white-space: pre-wrap;
+      font-family: Menlo, Monaco, Consolas, 'Lucida Console', monospace;
+      font-size: 85%;
+      margin: 0;
+      hyphens: manual;
+    }
+    pre {
+      margin: 1em 0;
+      overflow: auto;
+    }
+    pre code {
+      padding: 0;
+      overflow: visible;
+      overflow-wrap: normal;
+    }
+    .sourceCode {
+     background-color: transparent;
+     overflow: visible;
+    }
+    hr {
+      border: none;
+      border-top: 1px solid #1a1a1a;
+      height: 1px;
+      margin: 1em 0;
+    }
+    table {
+      margin: 1em 0;
+      border-collapse: collapse;
+      width: 100%;
+      overflow-x: auto;
+      display: block;
+      font-variant-numeric: lining-nums tabular-nums;
+    }
+    table caption {
+      margin-bottom: 0.75em;
+    }
+    tbody {
+      margin-top: 0.5em;
+      border-top: 1px solid #1a1a1a;
+      border-bottom: 1px solid #1a1a1a;
+    }
+    th {
+      border-top: 1px solid #1a1a1a;
+      padding: 0.25em 0.5em 0.25em 0.5em;
+    }
+    td {
+      padding: 0.125em 0.5em 0.25em 0.5em;
+    }
+    header {
+      margin-bottom: 4em;
+      text-align: center;
+    }
+    #TOC li {
+      list-style: none;
+    }
+    #TOC ul {
+      padding-left: 1.3em;
+    }
+    #TOC > ul {
+      padding-left: 0;
+    }
+    #TOC a:not(:hover) {
+      text-decoration: none;
+    }
+    span.smallcaps{font-variant: small-caps;}
+    div.columns{display: flex; gap: 1.5em;}
+    div.column{flex: auto;}
+    @media screen {
+    div.columns{gap: min(4vw, 1.5em);}
+    div.column{overflow-x: auto;}
+    }
+    div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+    /* The extra [class] is a hack that increases specificity enough to
+       override a similar rule in reveal.js */
+    ul.task-list[class]{list-style: none;}
+    ul.task-list li input[type="checkbox"] {
+      font-size: inherit;
+      width: 0.8em;
+      margin: 0 0.8em 0.2em -1.6em;
+      vertical-align: middle;
+    }
+    .display.math{display: block; text-align: center; margin: 0.5rem auto;}
+  </style>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <style>
+  :root{--fg:#1f2328;--muted:#656d76;--bg:#ffffff;--soft:#f6f8fa;--border:#d0d7de;--link:#0969da;--accent:#0550ae}
+  @media(prefers-color-scheme:dark){:root{--fg:#e6edf3;--muted:#8b949e;--bg:#0d1117;--soft:#161b22;--border:#30363d;--link:#4493f8;--accent:#79c0ff}}
+  *{box-sizing:border-box}
+  /* pandoc 기본 템플릿 스타일 무력화 (body max-width:36em / html 흰배경 / padding:50px) */
+  html{background:var(--bg)!important;color:var(--fg)!important;min-height:100%}
+  body{margin:0!important;padding:0!important;max-width:none!important;min-height:100vh;width:100%;
+   background:var(--bg)!important;color:var(--fg);
+   font-family:-apple-system,'Apple SD Gothic Neo','Pretendard',BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;
+   font-size:19px;line-height:1.75;-webkit-font-smoothing:antialiased}
+  nav.top{position:sticky;top:0;background:var(--soft);border-bottom:1px solid var(--border);
+   padding:14px 28px;display:flex;flex-wrap:wrap;gap:8px 20px;align-items:center;z-index:10}
+  nav.top .brand{font-weight:700;margin-right:10px;font-size:19px}
+  nav.top a{color:var(--muted);text-decoration:none;font-size:16px;padding:4px 8px;border-radius:6px}
+  nav.top a:hover{color:var(--fg);background:var(--bg)}
+  /* pandoc은 <main> 없이 본문을 body 직속에 둠 → body 자식(nav·footer 제외)을 가운데 읽기컬럼으로 */
+  body>*:not(nav):not(footer){max-width:960px;margin-left:auto;margin-right:auto;padding-left:28px;padding-right:28px}
+  body>h1.title{margin-top:36px}
+  h1,h2,h3{line-height:1.25;margin-top:1.7em}
+  h1{font-size:2.2em;border-bottom:1px solid var(--border);padding-bottom:.3em}
+  h2{font-size:1.65em;border-bottom:1px solid var(--border);padding-bottom:.3em}
+  h3{font-size:1.3em}
+  a{color:var(--link)}
+  code{background:var(--soft);padding:.15em .4em;border-radius:6px;font-size:.9em;
+   font-family:'SF Mono',ui-monospace,Menlo,Consolas,monospace}
+  pre{background:var(--soft);border:1px solid var(--border);border-radius:10px;padding:16px 18px;overflow:auto;font-size:.92em}
+  pre code{background:none;padding:0;font-size:1em}
+  table{border-collapse:collapse;width:100%;margin:1.1em 0;font-size:.97em}
+  th,td{border:1px solid var(--border);padding:9px 14px;text-align:left}
+  th{background:var(--soft)}
+  blockquote{margin:1em 0;padding:.3em 1.1em;color:var(--muted);border-left:4px solid var(--border)}
+  hr{border:none;border-top:1px solid var(--border);margin:2em 0}
+  li{margin:.25em 0}
+  footer{max-width:960px;margin:0 auto;padding:24px 28px;color:var(--muted);font-size:15px;border-top:1px solid var(--border)}
+  </style>
+</head>
+<body>
+<nav class="top"><span class="brand">homelab</span>
+<a href="index.html">Home</a>
+<a href="backup.html">backup</a>
+<a href="emacs.html">emacs</a>
+<a href="freebsd.html">freebsd</a>
+<a href="monitoring.html">monitoring</a>
+<a href="network.html">network</a>
+<a href="shell.html">shell</a>
+<a href="storage.html">storage</a>
+</nav>
+<header id="title-block-header">
+<h1 class="title">README — homelab</h1>
+</header>
+<h1 id="homelab">homelab</h1>
+<p>개인 홈랩 구성 기록. 스토리지 · 컴퓨트 · 백업 · 네트워크를 직접
+운영하며 정리한 문서입니다.</p>
+<blockquote>
+<p>설계 원칙: <strong>지루하고 안정적인 것이 미덕.</strong> 검증된
+조합(ZFS, rsync, restic)을 쓰고, 장애를 미리 설계하며(이중화·자동복구),
+튜닝은 감이 아니라 실측으로 합니다.</p>
+</blockquote>
+<h2 id="구성-요약">구성 요약</h2>
+<table>
+<thead>
+<tr>
+<th>노드</th>
+<th>하드웨어</th>
+<th>역할</th>
+<th>OS</th>
+<th>네트워크</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>msg10p</strong></td>
+<td>HP ProLiant MicroServer Gen10+ · Xeon E-2224 (4c) · 64GB ECC · SK
+hynix 1TB NVMe(root) + HGST 10TB×2 + WD Red 4TB×2 (ZFS 미러)</td>
+<td>스토리지 / 백업 서버</td>
+<td>Rocky Linux 9.8</td>
+<td>2.5G + 1G 자동 페일오버</td>
+</tr>
+<tr>
+<td><strong>prodesk</strong></td>
+<td>HP EliteDesk 800 G6 Mini · i9-10900 (10c/20t) · 64GB · Crucial MX500
+1TB(root) + WD SN750 500GB NVMe(ZFS)</td>
+<td>컴퓨트 / 랩</td>
+<td>Ubuntu 26.04 LTS</td>
+<td>2.5G 유선 + Wi-Fi 폴백</td>
+</tr>
+<tr>
+<td><strong>ebs</strong></td>
+<td>Lenovo ThinkCentre M72e Tiny · i3-3220T (2c/4t) · 16GB · Crucial
+M500 240GB SATA SSD</td>
+<td>상시 서비스 (봇·러너·터널)</td>
+<td>Ubuntu 26.04 LTS</td>
+<td>1G</td>
+</tr>
+<tr>
+<td><strong>Mac</strong></td>
+<td>MacBook Pro (Mac16,8) · <strong>M4 Pro</strong> (14c: 10P+4E) · 48GB
+· Apple SSD AP1024Z (1TB NVMe)</td>
+<td>워크스테이션</td>
+<td>macOS 26.4</td>
+<td>2.5G (Thunderbolt) + Wi-Fi 폴백</td>
+</tr>
+</tbody>
+</table>
+<p>VM: FreeBSD 15.1-RELEASE + 16.0-CURRENT (prodesk libvirt/KVM, 커널
+학습용)</p>
+<h2 id="토폴로지">토폴로지</h2>
+<pre><code>                    인터넷
+                      │
+                 [LG U+ GW] ──────── Tailscale (원격 접속)
+                      │
+              ┌───── 2.5G 스위치 ─────┐
+              │         │        │    │
+           ┌──┴──┐   ┌──┴──┐  ┌──┴──┐ └──┐(1G)
+           │ Mac │   │msg10p│  │prodesk│  │ ebs │
+           │2.5G │   │2.5G  │  │ 2.5G  │  │ 감시 허브
+           └─────┘   └──┬──┘  └───┬───┘  └──┬──┘
+            워크        ZFS 26T    │(libvirt)  │
+            스테이션   미러 2풀    │           │
+                                ┌─┴─┐       Beszel
+                          freebsd  fb-crnt   모니터링
+                          (15.1)  (CURRENT)   ← 5노드 감시
+
+  네트워크 이중화: msg10p·prodesk·Mac 모두 주 링크(2.5G) 죽으면 자동 폴백
+  백업 흐름: Mac ─rsync/restic→ msg10p(로컬) ─restic→ 클라우드(오프사이트)</code></pre>
+<h2 id="문서">문서</h2>
+<ul>
+<li><a href="docs/network.md">network.md</a> — 2.5G 멀티기가 전환, 링크
+이중화, NFS 자동복구</li>
+<li><a href="docs/storage.md">storage.md</a> — ZFS 풀 레이아웃,
+튜닝(ARC/recordsize), 디스크 검증</li>
+<li><a href="docs/backup.md">backup.md</a> — 3-2-1 다층 백업 (rsync +
+restic + kopia + 오프사이트)</li>
+<li><a href="docs/monitoring.md">monitoring.md</a> — Beszel 대시보드 +
+텔레그램 알림 (NAT 뒤 VM 연결)</li>
+<li><a href="docs/shell.md">shell.md</a> — bash + starship 공통 셸 환경
+(+ fish 선택)</li>
+<li><a href="docs/freebsd.md">freebsd.md</a> — FreeBSD 학습 랩
+(buildworld·jail·커널 모듈)</li>
+<li><a href="docs/emacs.md">emacs.md</a> — Emacs/Doom/Magit 치트시트
+(커널 소스 탐색·git 작업)</li>
+</ul>
+<h2 id="원칙으로-삼은-것들">원칙으로 삼은 것들</h2>
+<ul>
+<li><strong>3-2-1 백업</strong> — 사본 3벌, 매체 2종, 오프사이트
+1벌</li>
+<li><strong>CMR 디스크만 ZFS에</strong> — SMR은 리실버에서 죽는다</li>
+<li><strong>미러의 심장은 이중화</strong> — special vdev/메타데이터는
+단일 장치 금지</li>
+<li><strong>측정 후 튜닝</strong> — 병목을 구간별로 분리해 진짜 원인만
+고친다</li>
+<li><strong>장애를 기본값으로</strong> — 링크·마운트는 죽어도 자동
+복구되게 설계</li>
+</ul>
+<hr />
+<p><em>이 리포는 구성 문서(쇼케이스)입니다. 실제
+IaC(Terraform/Ansible/GitOps)와 자격증명이 얽힌 운영 스크립트는 별도
+private 리포에서 관리합니다.</em></p>
+<footer>Generated from README.md · homelab</footer>
+</body>
+</html>

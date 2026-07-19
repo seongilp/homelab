@@ -1,0 +1,645 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+  <meta charset="utf-8" />
+  <meta name="generator" content="pandoc 3.10" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes" />
+  <title>emacs — homelab</title>
+  <style>
+    /* Default styles provided by pandoc.
+    ** See https://pandoc.org/MANUAL.html#variables-for-html for config info.
+    */
+    html {
+      color: #1a1a1a;
+      background-color: #fdfdfd;
+    }
+    body {
+      margin: 0 auto;
+      max-width: 36em;
+      padding-left: 50px;
+      padding-right: 50px;
+      padding-top: 50px;
+      padding-bottom: 50px;
+      hyphens: auto;
+      overflow-wrap: break-word;
+      text-rendering: optimizeLegibility;
+      font-kerning: normal;
+    }
+    @media (max-width: 600px) {
+      body {
+        font-size: 0.9em;
+        padding: 12px;
+      }
+      h1 {
+        font-size: 1.8em;
+      }
+    }
+    @media print {
+      html {
+        background-color: white;
+      }
+      body {
+        background-color: transparent;
+        color: black;
+        font-size: 12pt;
+      }
+      p, h2, h3 {
+        orphans: 3;
+        widows: 3;
+      }
+      h2, h3, h4 {
+        page-break-after: avoid;
+      }
+    }
+    p {
+      margin: 1em 0;
+    }
+    a {
+      color: #1a1a1a;
+    }
+    a:visited {
+      color: #1a1a1a;
+    }
+    img {
+      max-width: 100%;
+    }
+    svg {
+      height: auto;
+      max-width: 100%;
+    }
+    h1, h2, h3, h4, h5, h6 {
+      margin-top: 1.4em;
+    }
+    h5, h6 {
+      font-size: 1em;
+      font-style: italic;
+    }
+    h6 {
+      font-weight: normal;
+    }
+    ol, ul {
+      padding-left: 1.7em;
+      margin-top: 1em;
+    }
+    li > ol, li > ul {
+      margin-top: 0;
+    }
+    blockquote {
+      margin: 1em 0 1em 1.7em;
+      padding-left: 1em;
+      border-left: 2px solid #e6e6e6;
+      color: #606060;
+    }
+    code {
+      white-space: pre-wrap;
+      font-family: Menlo, Monaco, Consolas, 'Lucida Console', monospace;
+      font-size: 85%;
+      margin: 0;
+      hyphens: manual;
+    }
+    pre {
+      margin: 1em 0;
+      overflow: auto;
+    }
+    pre code {
+      padding: 0;
+      overflow: visible;
+      overflow-wrap: normal;
+    }
+    .sourceCode {
+     background-color: transparent;
+     overflow: visible;
+    }
+    hr {
+      border: none;
+      border-top: 1px solid #1a1a1a;
+      height: 1px;
+      margin: 1em 0;
+    }
+    table {
+      margin: 1em 0;
+      border-collapse: collapse;
+      width: 100%;
+      overflow-x: auto;
+      display: block;
+      font-variant-numeric: lining-nums tabular-nums;
+    }
+    table caption {
+      margin-bottom: 0.75em;
+    }
+    tbody {
+      margin-top: 0.5em;
+      border-top: 1px solid #1a1a1a;
+      border-bottom: 1px solid #1a1a1a;
+    }
+    th {
+      border-top: 1px solid #1a1a1a;
+      padding: 0.25em 0.5em 0.25em 0.5em;
+    }
+    td {
+      padding: 0.125em 0.5em 0.25em 0.5em;
+    }
+    header {
+      margin-bottom: 4em;
+      text-align: center;
+    }
+    #TOC li {
+      list-style: none;
+    }
+    #TOC ul {
+      padding-left: 1.3em;
+    }
+    #TOC > ul {
+      padding-left: 0;
+    }
+    #TOC a:not(:hover) {
+      text-decoration: none;
+    }
+    span.smallcaps{font-variant: small-caps;}
+    div.columns{display: flex; gap: 1.5em;}
+    div.column{flex: auto;}
+    @media screen {
+    div.columns{gap: min(4vw, 1.5em);}
+    div.column{overflow-x: auto;}
+    }
+    div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+    /* The extra [class] is a hack that increases specificity enough to
+       override a similar rule in reveal.js */
+    ul.task-list[class]{list-style: none;}
+    ul.task-list li input[type="checkbox"] {
+      font-size: inherit;
+      width: 0.8em;
+      margin: 0 0.8em 0.2em -1.6em;
+      vertical-align: middle;
+    }
+    .display.math{display: block; text-align: center; margin: 0.5rem auto;}
+  </style>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <style>
+  :root{--fg:#1f2328;--muted:#656d76;--bg:#ffffff;--soft:#f6f8fa;--border:#d0d7de;--link:#0969da;--accent:#0550ae}
+  @media(prefers-color-scheme:dark){:root{--fg:#e6edf3;--muted:#8b949e;--bg:#0d1117;--soft:#161b22;--border:#30363d;--link:#4493f8;--accent:#79c0ff}}
+  *{box-sizing:border-box}
+  /* pandoc 기본 템플릿 스타일 무력화 (body max-width:36em / html 흰배경 / padding:50px) */
+  html{background:var(--bg)!important;color:var(--fg)!important;min-height:100%}
+  body{margin:0!important;padding:0!important;max-width:none!important;min-height:100vh;width:100%;
+   background:var(--bg)!important;color:var(--fg);
+   font-family:-apple-system,'Apple SD Gothic Neo','Pretendard',BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;
+   font-size:19px;line-height:1.75;-webkit-font-smoothing:antialiased}
+  nav.top{position:sticky;top:0;background:var(--soft);border-bottom:1px solid var(--border);
+   padding:14px 28px;display:flex;flex-wrap:wrap;gap:8px 20px;align-items:center;z-index:10}
+  nav.top .brand{font-weight:700;margin-right:10px;font-size:19px}
+  nav.top a{color:var(--muted);text-decoration:none;font-size:16px;padding:4px 8px;border-radius:6px}
+  nav.top a:hover{color:var(--fg);background:var(--bg)}
+  /* pandoc은 <main> 없이 본문을 body 직속에 둠 → body 자식(nav·footer 제외)을 가운데 읽기컬럼으로 */
+  body>*:not(nav):not(footer){max-width:960px;margin-left:auto;margin-right:auto;padding-left:28px;padding-right:28px}
+  body>h1.title{margin-top:36px}
+  h1,h2,h3{line-height:1.25;margin-top:1.7em}
+  h1{font-size:2.2em;border-bottom:1px solid var(--border);padding-bottom:.3em}
+  h2{font-size:1.65em;border-bottom:1px solid var(--border);padding-bottom:.3em}
+  h3{font-size:1.3em}
+  a{color:var(--link)}
+  code{background:var(--soft);padding:.15em .4em;border-radius:6px;font-size:.9em;
+   font-family:'SF Mono',ui-monospace,Menlo,Consolas,monospace}
+  pre{background:var(--soft);border:1px solid var(--border);border-radius:10px;padding:16px 18px;overflow:auto;font-size:.92em}
+  pre code{background:none;padding:0;font-size:1em}
+  table{border-collapse:collapse;width:100%;margin:1.1em 0;font-size:.97em}
+  th,td{border:1px solid var(--border);padding:9px 14px;text-align:left}
+  th{background:var(--soft)}
+  blockquote{margin:1em 0;padding:.3em 1.1em;color:var(--muted);border-left:4px solid var(--border)}
+  hr{border:none;border-top:1px solid var(--border);margin:2em 0}
+  li{margin:.25em 0}
+  footer{max-width:960px;margin:0 auto;padding:24px 28px;color:var(--muted);font-size:15px;border-top:1px solid var(--border)}
+  </style>
+</head>
+<body>
+<nav class="top"><span class="brand">homelab</span>
+<a href="index.html">Home</a>
+<a href="backup.html">backup</a>
+<a href="emacs.html">emacs</a>
+<a href="freebsd.html">freebsd</a>
+<a href="monitoring.html">monitoring</a>
+<a href="network.html">network</a>
+<a href="shell.html">shell</a>
+<a href="storage.html">storage</a>
+</nav>
+<header id="title-block-header">
+<h1 class="title">emacs — homelab</h1>
+</header>
+<h1 id="emacs--doom--magit-치트시트">Emacs / Doom / Magit 치트시트</h1>
+<blockquote>
+<p>FreeBSD 커널 소스 탐색과 git 작업용. <strong>Doom Emacs + evil(vim)
+모드 + eglot(clangd)</strong> 기준. 핵심 철학: 외우지 말고
+<code>SPC</code> 누르고 기다리면 다음 키 후보가 뜬다(which-key). 이
+문서는 "자주 쓰는 것 감 잡기".</p>
+</blockquote>
+<h2 id="목록이-뜨면--타이핑으로-좁힌다">목록이 뜨면 → 타이핑으로
+좁힌다</h2>
+<p>Doom의 거의 모든 선택창(<code>SPC SPC</code>, <code>SPC s i</code>,
+<code>SPC ,</code>, <code>SPC :</code>, 브랜치 선택 …)은
+<strong>뜨자마자 타이핑하면 실시간으로 후보가 좁혀진다.</strong>
+화살표는 최후 미세조정용.</p>
+<ul>
+<li>fuzzy 매칭: 연속 안 된 글자도 걸림 — <code>nwfr</code> →
+<strong>n</strong>vmf_<strong>w</strong>ait_<strong>f</strong>or_<strong>r</strong>eply</li>
+<li>이 "목록 뜨면 → 타이핑 → Enter" 리듬이 조작의 절반.</li>
+</ul>
+<h2 id="생존-필수">생존 필수</h2>
+<table>
+<thead>
+<tr>
+<th>키</th>
+<th>동작</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong><code>C-g</code></strong></td>
+<td>취소 (막히면 무조건. 만능 탈출)</td>
+</tr>
+<tr>
+<td><code>SPC h</code></td>
+<td>도움말 (뭘 눌러야 할지 모를 때)</td>
+</tr>
+<tr>
+<td><code>SPC .</code></td>
+<td>경로로 파일 열기</td>
+</tr>
+<tr>
+<td><strong><code>SPC SPC</code></strong></td>
+<td>프로젝트 파일 열기 (이름으로)</td>
+</tr>
+<tr>
+<td><code>SPC ,</code></td>
+<td>열린 버퍼 전환</td>
+</tr>
+<tr>
+<td><strong><code>SPC s i</code></strong></td>
+<td>이 파일의 함수/심볼 목록 점프</td>
+</tr>
+<tr>
+<td><code>:w</code> / <code>:q</code></td>
+<td>저장 / 닫기 (vim)</td>
+</tr>
+<tr>
+<td><code>SPC q q</code></td>
+<td>Doom 종료</td>
+</tr>
+</tbody>
+</table>
+<h2 id="이동--코드-탐색-lspclangd">이동 / 코드 탐색 (LSP·clangd)</h2>
+<table>
+<thead>
+<tr>
+<th>키</th>
+<th>동작</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong><code>gd</code></strong></td>
+<td>정의로 점프</td>
+</tr>
+<tr>
+<td><strong><code>C-o</code> / <code>C-i</code></strong></td>
+<td>뒤로 / 앞으로 (점프 히스토리)</td>
+</tr>
+<tr>
+<td><code>gr</code></td>
+<td>이 심볼 참조 전부 찾기</td>
+</tr>
+<tr>
+<td><code>K</code></td>
+<td>심볼 문서/타입 팝업 (안 움직이고 슬쩍)</td>
+</tr>
+<tr>
+<td><strong><code>SPC s p</code></strong></td>
+<td>프로젝트 전체 내용 검색 (grep)</td>
+</tr>
+<tr>
+<td><code>/</code></td>
+<td>현재 파일 내 검색 (evil)</td>
+</tr>
+</tbody>
+</table>
+<h2 id="버퍼-관리">버퍼 관리</h2>
+<p>Emacs는 <strong>버퍼</strong>(열린 내용)와
+<strong>윈도우</strong>(화면 분할)를 별개로 본다. "내용 닫기"는
+<code>b</code> 명령, "화면 칸 정리"는 <code>w</code> 명령 — 헷갈리기
+쉬우니 구분.</p>
+<table>
+<thead>
+<tr>
+<th>키</th>
+<th>동작</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>SPC ,</code> / <code>SPC b b</code></td>
+<td>열린 버퍼 목록/전환 (타이핑으로 좁힘)</td>
+</tr>
+<tr>
+<td><strong><code>SPC b k</code></strong></td>
+<td>현재 버퍼 죽이기(내용 닫기) — 창은 남음</td>
+</tr>
+<tr>
+<td><code>SPC b n</code> / <code>SPC b p</code></td>
+<td>다음 / 이전 버퍼</td>
+</tr>
+<tr>
+<td>(Magit 창에서) <code>q</code></td>
+<td>Magit 버퍼 닫기</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p>버퍼는 수십 개 쌓여도 문제없다 — <code>SPC ,</code>로 타이핑해 찾으면
+됨. 정리 강박 불필요. <strong>화면이 두 칸으로 갈라진 걸 하나로</strong>
+합치려면 <code>SPC b k</code>가 아니라 아래 <code>SPC w o</code>.</p>
+</blockquote>
+<h2 id="창--분할">창 / 분할</h2>
+<table>
+<thead>
+<tr>
+<th>키</th>
+<th>동작</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>SPC w v</code> / <code>SPC w s</code></td>
+<td>세로 / 가로 분할</td>
+</tr>
+<tr>
+<td><code>SPC w w</code></td>
+<td>창 전환 (다음 창 순환)</td>
+</tr>
+<tr>
+<td><code>SPC w h/j/k/l</code></td>
+<td>왼/아래/위/오른쪽 창 이동</td>
+</tr>
+<tr>
+<td><code>SPC w c</code></td>
+<td>현재 창 닫기</td>
+</tr>
+<tr>
+<td><strong><code>SPC w o</code></strong></td>
+<td>현재 창만 남기고 나머지 다 닫기</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p>팁: 좌우 분할에서 한쪽만 닫으려면 → 남기고 싶은 창에 커서 두고
+<strong><code>SPC w o</code></strong>. vim 방식(<code>C-w c</code>,
+<code>C-w o</code>)도 그대로 먹는다.</p>
+</blockquote>
+<h2 id="magit-git--왜-좋은가">Magit (git) — 왜 좋은가</h2>
+<p>git을 "외워서 치는 명령어"에서 **"보면서 누르는 인터페이스"**로
+바꿔준다. 특히 <strong>부분 스테이징</strong>(한 파일에서 일부 줄만
+커밋)이 압도적으로 쉽다 — 터미널 <code>git add -p</code>의 지옥이 "그
+줄에 커서 놓고 <code>s</code>" 한 방이 된다. 커밋을 논리적으로 쪼개는
+습관 = 리뷰 잘 받는 패치.</p>
+<table>
+<thead>
+<tr>
+<th>키</th>
+<th>동작</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong><code>SPC g g</code></strong></td>
+<td>Magit status (git 홈)</td>
+</tr>
+<tr>
+<td><strong><code>SPC g B</code></strong></td>
+<td>blame (줄별 커밋/작성자)</td>
+</tr>
+<tr>
+<td><code>SPC g L</code></td>
+<td>이 파일 커밋 히스토리</td>
+</tr>
+</tbody>
+</table>
+<h3 id="magit-status-화면-안에서">Magit status 화면 안에서</h3>
+<table>
+<thead>
+<tr>
+<th>키</th>
+<th>동작</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>TAB</code></td>
+<td>섹션 접기/펼치기 (diff 미리보기)</td>
+</tr>
+<tr>
+<td><code>s</code> / <code>u</code></td>
+<td>스테이징 / 언스테이징 (줄 단위도 됨)</td>
+</tr>
+<tr>
+<td><code>c c</code></td>
+<td>커밋 (메시지 쓰고 <code>C-c C-c</code> 확정)</td>
+</tr>
+<tr>
+<td><code>P p</code> / <code>F p</code></td>
+<td>push / pull</td>
+</tr>
+<tr>
+<td><code>l l</code></td>
+<td>로그</td>
+</tr>
+<tr>
+<td><code>b b</code> / <code>b c</code></td>
+<td>브랜치 전환 / 생성</td>
+</tr>
+<tr>
+<td><code>Enter</code></td>
+<td>커밋·파일 위에서 → 상세 diff / 소스로 점프</td>
+</tr>
+<tr>
+<td><strong><code>?</code></strong></td>
+<td>전체 명령 메뉴 (Magit 학습 왕도)</td>
+</tr>
+<tr>
+<td><code>q</code></td>
+<td>나가기</td>
+</tr>
+</tbody>
+</table>
+<h3 id="blame-활용">blame 활용</h3>
+<p><code>SPC g B</code> → 각 줄 옆에 작성자·날짜·커밋. 커밋 정보 위에서
+<code>Enter</code> → 그 커밋 전체 diff/메시지("왜 이렇게 짰나"가 여기
+있다). 커널처럼 오래된 코드를 <strong>시간축으로 읽는</strong> 도구.</p>
+<h2 id="핵심-3개만">핵심 3개만</h2>
+<ol type="1">
+<li><strong><code>C-g</code></strong> — 막히면 탈출</li>
+<li><strong><code>SPC SPC</code></strong> — 파일 순간이동 (+ 타이핑으로
+좁히기)</li>
+<li><strong><code>SPC g g</code> → <code>?</code></strong> — git 뭐든
+메뉴에서 찾기</li>
+</ol>
+<h2 id="커널-소스-lsp가-안-될-때-gd가-tags로-빠짐">커널 소스 LSP가 안 될
+때 (gd가 TAGS로 빠짐)</h2>
+<ol type="1">
+<li>Doom <code>~/.config/doom/init.el</code>에 <code>(lsp +eglot)</code>
++ <code>(cc +lsp)</code> 주석 풀렸나 → <code>doom sync</code> →
+<strong>Emacs 완전 재시작</strong> (이게 1순위)</li>
+<li><code>/usr/src/compile_commands.json</code> 존재 확인 (모듈 빌드를
+<code>intercept-build</code>로 캡처해 생성, <code>-I.</code>은 obj
+절대경로로 치환해 위치 독립)</li>
+<li><code>M-x lsp-</code> 쳤을 때 <code>lsp-command-map</code> 하나만
+뜨면 = LSP 모듈 미로드 → 1번</li>
+</ol>
+<h2 id="org-mode-메모할일일정">Org mode (메모·할일·일정)</h2>
+<p><code>.org</code> 확장자면 자동 인식. 파일 안엔 <code>*</code>로
+시작하는 제목만 있으면 됨(<code>#+TITLE</code> 등은 선택).</p>
+<pre><code>* 프로젝트          ← 최상위 (TAB으로 접기/펼치기)
+** TODO 할 일  :태그:  ← 할일 + 태그
+** DONE 끝낸 일
+   SCHEDULED: &lt;2026-07-20&gt;   ← 날짜 = 아젠다에 자동 등록
+   - [ ] 세부 체크박스</code></pre>
+<table>
+<thead>
+<tr>
+<th>키</th>
+<th>동작</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>TAB</code></td>
+<td>제목 접기/펼치기</td>
+</tr>
+<tr>
+<td><code>SPC TAB</code> (<code>S-TAB</code>)</td>
+<td>문서 전체 접기/펼치기</td>
+</tr>
+<tr>
+<td><strong><code>SPC m t</code></strong></td>
+<td>TODO ↔︎ DONE 상태 토글</td>
+</tr>
+<tr>
+<td><code>SPC m d s</code></td>
+<td>날짜(SCHEDULED) 넣기</td>
+</tr>
+<tr>
+<td><code>C-c C-c</code></td>
+<td>체크박스 <code>[ ]</code>↔︎<code>[X]</code>, 코드블록
+실행(Babel)</td>
+</tr>
+<tr>
+<td><strong><code>SPC o A</code></strong> →
+<code>a</code>/<code>t</code></td>
+<td>아젠다 (a=주간달력, t=전체 TODO 목록)</td>
+</tr>
+</tbody>
+</table>
+<p><strong>아젠다 화면 안에서:</strong> <code>t</code> 바로
+완료토글(원본도 수정) · <code>RET</code> 원본 점프 · <code>r</code>
+새로고침 · <code>q</code> 닫기</p>
+<blockquote>
+<p>⚠️ <strong>함정</strong>: <code>SPC o A</code>가 비어 보이면 = 그
+파일이 <code>org-agenda-files</code>에 없는 것. 아젠다는 <strong>등록된
+파일만</strong> 뒤진다(파일에 TODO가 많아도 등록 안 됐으면 0개).
+config.el에
+<code>(setq org-agenda-files (list "~/" "~/org/" "~/work/"))</code> →
+<code>SPC : doom/reload</code>.</p>
+</blockquote>
+<h3 id="babel--문서-안에서-코드-실행-진짜-강력한-부분">Babel — 문서
+안에서 코드 실행 (진짜 강력한 부분)</h3>
+<p>org 파일 안의 코드 블록을 <strong>커서 올리고
+<code>C-c C-c</code></strong> 하면 실행되고 결과가 바로 아래 박힌다.
+Jupyter 노트북인데 언어·실행 위치 제약이 없는 버전. 학습 노트 + 실험 +
+결과가 한 파일에.</p>
+<pre><code>#+begin_src sh :results output
+uname -a
+#+end_src</code></pre>
+<p><strong>킬러 기능 — <code>:dir</code>로 원격(SSH) 실행:</strong> 블록
+헤더에 <code>:dir /ssh:호스트:경로</code>를 주면 그 코드가 <strong>원격
+서버에서</strong> 실행된다. 커널 실험을 Mac의 노트에서 바로:</p>
+<pre><code>#+begin_src sh :dir /ssh:freebsd-dev:~/kernel/sysctl_demo
+make &amp;&amp; sudo kldload ./hlab.ko &amp;&amp; sysctl debug.hlab
+#+end_src</code></pre>
+<table>
+<thead>
+<tr>
+<th>헤더 인자</th>
+<th>뜻</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>:results output</code></td>
+<td>stdout을 결과로 (기본은 마지막 값)</td>
+</tr>
+<tr>
+<td><code>:dir /ssh:host:path</code></td>
+<td>원격 host의 path에서 실행 (TRAMP)</td>
+</tr>
+<tr>
+<td><code>:dir /path</code></td>
+<td>로컬 특정 디렉터리에서</td>
+</tr>
+<tr>
+<td><code>:var x=1</code></td>
+<td>변수 주입</td>
+</tr>
+<tr>
+<td>언어: <code>sh</code> <code>python</code> <code>C</code>
+<code>emacs-lisp</code> …</td>
+<td>src 블록 첫 단어</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p>처음 <code>C-c C-c</code> 하면 "이 코드 실행할까?" 물어봄 →
+<code>yes</code>. (<code>org-confirm-babel-evaluate</code>) 학습용
+예시가 <code>~/org/freebsd-kernel.org</code>에 있음 — sysctl 실습을 원격
+실행으로 문서화.</p>
+</blockquote>
+<h3 id="roam--개념을-위키처럼-링크-지식-그래프">Roam — 개념을 위키처럼
+링크 (지식 그래프)</h3>
+<p><code>+roam</code> 모듈. 노트를 파일 단위로 만들고
+<code>[[링크]]</code>로 이으면 지식이 그래프로 쌓인다. "sysctl",
+"시스템콜" 같은 개념을 노트로 만들어 연결 → 나중에 그래프로 전체
+조망.</p>
+<table>
+<thead>
+<tr>
+<th>키</th>
+<th>동작</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong><code>SPC n r f</code></strong></td>
+<td>노트 찾기/만들기 (이름 타이핑, 없으면 새로 생성)</td>
+</tr>
+<tr>
+<td><code>SPC n r i</code></td>
+<td>지금 커서 위치에 다른 노트 링크 삽입</td>
+</tr>
+<tr>
+<td><code>SPC n r b</code></td>
+<td>이 노트를 링크한 다른 노트들(backlinks) 보기</td>
+</tr>
+<tr>
+<td><strong><code>SPC n r g</code></strong></td>
+<td>지식 그래프 시각화 (graphviz 필요)</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p>노트 저장 위치: <code>org-roam-directory</code>(기본
+<code>~/org/roam</code>). 커널 개념들을 여기 쌓으면 "이 함수가 어느
+서브시스템과 엮이나"가 링크로 드러난다 — committer 지망생용 2차 뇌.</p>
+</blockquote>
+<h3 id="내보내기-export">내보내기 (export)</h3>
+<p><code>SPC m e</code> → 메뉴에서 선택. <code>h h</code>=HTML,
+<code>l p</code>=PDF(LaTeX 필요), <code>m m</code>=Markdown. 학습 노트를
+블로그·문서로 뽑을 때.</p>
+<footer>Generated from emacs.md · homelab</footer>
+</body>
+</html>
