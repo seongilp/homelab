@@ -16,6 +16,8 @@
 
 VM: FreeBSD 15.1-RELEASE + 16.0-CURRENT (prodesk libvirt/KVM, 커널 학습용)
 
+OOB: **NanoKVM** (Sipeed, RISC-V IP-KVM) — prodesk에 HDMI/USB로 물린 하드웨어 원격 콘솔. OS가 죽어도(부팅 실패·BIOS·커널 패닉) 웹UI로 화면·키보드·전원 제어. Tailscale로 집 밖에서도 접속.
+
 ## 토폴로지
 
 ```
@@ -29,11 +31,11 @@ VM: FreeBSD 15.1-RELEASE + 16.0-CURRENT (prodesk libvirt/KVM, 커널 학습용)
            │ Mac │   │msg10p│  │prodesk│  │ ebs │
            │2.5G │   │2.5G  │  │ 2.5G  │  │ 감시 허브
            └─────┘   └──┬──┘  └───┬───┘  └──┬──┘
-            워크        ZFS 26T    │(libvirt)  │
-            스테이션   미러 2풀    │           │
-                                ┌─┴─┐       Beszel
-                          freebsd  fb-crnt   모니터링
-                          (15.1)  (CURRENT)   ← 5노드 감시
+            워크        ZFS 26T    │(libvirt) │
+            스테이션   미러 2풀    │  └─ NanoKVM (OOB 콘솔)
+                                ┌─┴─┐         │
+                          freebsd  fb-crnt   Beszel
+                          (15.1)  (CURRENT)  모니터링 ← 5노드 감시
 
   네트워크 이중화: msg10p·prodesk·Mac 모두 주 링크(2.5G) 죽으면 자동 폴백
   백업 흐름: Mac ─rsync/restic→ msg10p(로컬) ─restic→ 클라우드(오프사이트)

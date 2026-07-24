@@ -58,3 +58,22 @@ nfs.client.mount.options = locallocks,nfc,rsize=65536,wsize=65536
 ```
 - `locallocks` 없으면 Quick Look/sips가 NFS 잠금에서 실패 (`nolocks`는 오히려 error 13)
 - `nfc` 없으면 Apple 프레임워크가 **한글 경로만** 실패 — 서버는 NFC인데 NFD로 조회하기 때문
+
+## OOB 원격 콘솔 (NanoKVM)
+
+컴퓨트 노드(prodesk)는 헤드리스라, OS가 죽으면 SSH로는 손을 못 댄다. 그래서
+**하드웨어 레벨 원격 콘솔**을 하나 물려뒀다 — Sipeed **NanoKVM** (RISC-V 임베디드 보드).
+
+```
+  운영자 ──(LAN or Tailscale)──▶ NanoKVM ──HDMI(캡처)+USB(가상 키보드/마우스/USB)──▶ prodesk
+```
+
+- **SSH가 못 하는 걸 한다**: SSH는 OS 커널·sshd가 살아있어야 하지만, NanoKVM은
+  HDMI 출력을 캡처하고 USB HID를 흉내 내므로 **BIOS 화면·부트로더·커널 패닉·재설치**
+  화면까지 그대로 보고 조작한다. 사실상 "물리적으로 앞에 앉은 것"과 동급.
+- **주 용도**: 부팅 실패 복구, BIOS 설정, 가상 USB로 ISO 마운트 후 OS 재설치, 원격 전원/리셋.
+- **원격 접속**: 장비에 Tailscale을 올려 tailnet에 편입 → 집 밖에서도 웹UI 접속.
+  prodesk가 완전히 먹통이어도 밖에서 살릴 수 있는 **최후의 수단**.
+- **교훈**: 헤드리스 서버를 원격에서 운영하려면 "OS가 죽었을 때"를 대비한 대역외(out-of-band)
+  경로가 하나 있어야 한다. IPMI/iLO가 없는 소비자용 미니 PC엔 IP-KVM이 그 역할을 대신한다.
+  (prodesk를 책상에서 떨어뜨려 부팅 불능이 됐던 적이 있어 그 필요성을 체감했다.)
