@@ -5,12 +5,12 @@
 ### msg10p — 두 미러 풀 (장애 격리)
 
 ```
-zpool   9.09T  (75% 사용)   — 주 데이터 / NAS 백업 / 사진 아카이브
+zpool   9.09T  (53% 사용)   — 활성 백업 타깃 + 아카이브
 └─ mirror-0
    ├─ HGST HUH721010ALE604  (10TB, CMR)
    └─ HGST HUH721010ALE604  (10TB, CMR)
 
-zpool2  3.62T  (49% 사용)   — 부 데이터 (외장드라이브 아카이브)
+zpool2  3.62T  (74% 사용)   — 외부에서 가져온 정적 사본
 └─ mirror-0
    ├─ WD Red Plus WD40EFZX  (4TB, CMR)
    └─ WD Red Plus WD40EFZX  (4TB, CMR)
@@ -19,17 +19,40 @@ nvme0n1 (SK hynix 1TB)      — OS(root) 전용, 풀 미포함
 ```
 
 두 풀을 **일부러 분리**했다. 오래된 중고 디스크(zpool2)가 죽어도 주 백업 풀(zpool)은 무사하도록.
+역할도 갈라 두었다 — **`zpool`은 매일 쓰기가 일어나는 활성 백업 타깃**,
+**`zpool2`는 한 번 부어넣고 늘지 않는 정적 사본**(외장드라이브·클라우드 덤프).
 
-**주요 데이터셋**
+**주요 데이터셋** (2026-07-26 기준)
 
 | 데이터셋 | 용량 | recordsize | 압축 | 용도 |
 |----------|------|-----------|------|------|
-| `zpool/rsync` | 5.34T | 128K | lz4 | NAS 백업 미러 |
-| `zpool/macbook` | 463G | 128K | zstd | Mac restic/kopia 리포 |
-| `zpool/photos` | 283G | **1M** | on | 사진 원본 아카이브 |
-| `zpool/backup` | 442G | 128K | lz4 | 각종 백업 |
+| `zpool/ds920p` | 4.06T | 128K | lz4 | 퇴역한 Synology DS920+ 전체 덤프 |
+| `zpool/photos` | 283G | **1M** | on | 사진 원본 아카이브 (2001년~) |
+| `zpool/restic/mac` | 247G | 128K | zstd | restic 리포 — `~/work`, `~/Downloads` |
+| `zpool/restic/photo` | 288G | 128K | zstd | restic 리포 — Apple Photos |
+| `zpool/backup` | 184G | 128K | lz4 | rsync 평문 미러 |
+| `zpool/share` | 63.5G | 128K | lz4 | 작업 자료 |
 | `zpool2/mac_backup` | 1.12T | 128K | lz4 | 외장드라이브 미러 |
 | `zpool2/orico` | 686G | 128K | lz4 | 외장드라이브 미러 |
+| `zpool2/icloud` | 639G | 128K | lz4 | iCloud 일회성 덤프 |
+
+### 이름이 곧 문서다
+
+한동안 데이터셋 이름이 `rsync`, `fs1`, `fs2`였다. 만들 당시엔 자명했지만 반년 뒤엔
+`rsync`가 "rsync로 받는 것"인지 "rsync 설정"인지 알 수 없었고, 실제로 매일 도는
+백업 타깃으로 착각해 한참 헤맸다(실체는 **일회성 NAS 이관 덤프**였다).
+`ds920p` / `archives` / `share`로 바꾸고 나서야 `zfs list` 한 번에 구조가 읽혔다.
+
+restic 리포도 여기저기 흩어져 있던 것을 `zpool/restic/{mac,photo}` 아래로 모았다.
+**이름을 바꿀 때는 참조부터 훑는다** — 실제로 이 검색이 백업 repo 경로, rsync 데몬
+모듈 설정, SELinux 파일 컨텍스트를 잡아냈다. 하나라도 놓쳤으면 다음 새벽에 조용히 실패했을 것.
+
+```bash
+grep -rn 'zpool/<옛이름>' /etc /usr/local ~/...
+```
+
+데이터셋 `mountpoint` 속성이 `default`(상속)이면 rename 시 마운트 경로가 자동으로 따라온다.
+`local`로 고정해 두면 따라오지 않으니 확인이 필요하다.
 
 ### prodesk — NVMe 단일 풀
 
