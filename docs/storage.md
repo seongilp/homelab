@@ -59,9 +59,9 @@ grep -rn 'zpool/<옛이름>' /etc /usr/local ~/...
 ### prodesk — NVMe 단일 풀
 
 ```
-data  464G  (12% 사용)  — VM 이미지 (freebsd, freebsd-dev)
+data  464G  (13% 사용)  — VM 이미지 3대 (zen, freebsd, freebsd-dev) · 전부 raw
 └─ nvme (WD Black SN750 500GB)   ※ 단일 vdev — 체크섬 감지만, 복구는 백업 의존
-sda   (Crucial MX500 1TB, SATA)  — Ubuntu 시스템 + zen VM + ebs 백업 수신
+sda   (Crucial MX500 1TB, SATA)  — Ubuntu 시스템 + ebs 백업 수신
 ```
 
 단일 디스크 풀이라 자가 복구(미러)는 없지만 체크섬으로 손상은 감지된다.

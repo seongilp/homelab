@@ -123,7 +123,14 @@ VM 이미지는 파일 rsync보다 **`zfs send`가 압도적으로 낫다.** 초
 > FreeBSD는 저널링이 있어 대개 정상 부팅되지만, 완전한 정합성이 필요하면 스냅샷 직전에
 > `virsh suspend`를 걸거나 게스트에서 sync 한다.
 
-`zen` VM은 `/var/lib/libvirt/images/`(ext4 루트)에 있어 이 복제에 포함되지 않는다.
+VM 3대(zen · freebsd · freebsd-dev)가 모두 `data/vms` 아래 **raw 포맷**으로 통일돼 있어
+전부 이 복제에 포함된다. `zen`은 원래 `/var/lib/libvirt/images/`(ext4 루트)에 qcow2로
+있어서 백업에서 빠져 있었다 — **VM 하나가 다른 파일시스템에 있으면 조용히 누락된다.**
+
+> **ZFS 위에서는 qcow2를 쓰지 않는다.** qcow2 자체가 copy-on-write인데 ZFS도 COW라
+> 같은 일을 두 번 하면서 쓰기 증폭이 생긴다. raw로 두면 스냅샷·압축·sparse를 ZFS가
+> 전담해 계층이 하나로 정리된다. 변환은 `qemu-img convert -O raw` 후 libvirt XML의
+> `<driver type='qcow2'/>`를 `raw`로 바꾸면 된다(경로만 바꾸고 type을 놓치면 부팅 실패).
 
 ### restic 리포
 
