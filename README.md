@@ -55,6 +55,10 @@ OOB: **NanoKVM** (Sipeed, RISC-V IP-KVM) — prodesk에 HDMI/USB로 물린 하�
 - [freebsd.md](docs/freebsd.md) — FreeBSD 학습 랩 (buildworld·jail·커널 모듈)
 - [emacs.md](docs/emacs.md) — Emacs/Doom/Magit 치트시트 (커널 소스 탐색·git 작업)
 
+## 작업 일지
+
+- [notes/](notes/) — 날짜별 작업 기록과 미해결 항목. `docs/`가 결론이라면 여기는 그 과정(오진·헛다리 포함)
+
 ## 원칙으로 삼은 것들
 
 - **3-2-1 백업** — 사본 3벌, 매체 2종, 오프사이트 1벌
