@@ -46,7 +46,6 @@
 |------|-----|------|--------|
 | 01:00 | restic `mac` | `~/work`, `~/Downloads` | `msg10p:/zpool/restic/mac` |
 | 02:00 | restic `mac-r2` | `~/work`, `~/Downloads` | R2 `mbpr-offsite` |
-| 03:00 | restic `photo` | `~/Pictures` | `msg10p:/zpool/restic/photo` |
 | 03:00 | rsync `work-backup` | `~/work` | `msg10p:/zpool/backup/work` |
 | 03:30 | rsync `downloads-backup` | `~/Downloads` | `msg10p:/zpool/backup/Downloads` |
 | 04:00 | rsync `photos-backup` | `/Volumes/orico/photos` | `msg10p:/zpool/photos` |
@@ -60,9 +59,14 @@
 
 | 시각 | 잡 | 내용 |
 |------|-----|------|
-| 매일 02:00 | `zfs-auto-snapshot.sh` | 중요 데이터셋 5종 일일 스냅샷, 30일 보관 |
+| 매일 02:00 | `zfs-auto-snapshot.sh` | 중요 데이터셋 4종 일일 스냅샷, 30일 보관 |
+| 매일 07:30 | `backup-healthcheck.sh` | 아래 점검 루틴 자동 실행 → 텔레그램 |
 | 매주 일 05:00 | `photo-offsite-r2.sh` | `/zpool/photos` → R2 `photo-r2` (오프사이트) |
 | 매월 1일 03:00 | `zpool scrub` | `zpool`, `zpool2` |
+
+스냅샷 대상: `zpool/photos`, `zpool/backup`, `zpool/restic/mac`, `zpool2/icloud`.
+전부 **덮어쓰기·삭제가 전파될 수 있는** 백업 목적지다. rsync 미러는 `--delete`로,
+Parachute는 full-dump로 이전 상태를 지운다. 스냅샷이 그 계층을 막는다.
 
 `/etc/cron.d/{zfs-auto-snapshot,photo-offsite-r2,zfs-scrub}`, 스크립트는 `/usr/local/sbin/`.
 오프사이트를 **맥이 아니라 msg10p에서** 실행하는 이유: 맥 전원·외장드라이브 연결과 무관하게 돌아간다.
@@ -72,21 +76,50 @@
 | 프로필 | 리포 | 암호 |
 |--------|------|------|
 | `mac` | `sftp:msg10p:/zpool/restic/mac` | `~/.config/backup/restic.key` |
-| `photo` | `sftp:msg10p:/zpool/restic/photo` | 위와 동일 |
 | `mac-r2` | `s3:…r2.cloudflarestorage.com/mbpr-offsite` | 위와 동일 |
 | (msg10p) 사진 오프사이트 | `s3:…r2.cloudflarestorage.com/photo-r2` | 위와 동일 |
 
 설정: `~/work/infraops/backup/mac/restic/profiles.yaml`
 자격증명(`restic.key`, `r2.env`, `telegram.env`)은 `~/.config/backup/`(0600)에만 두고 git에 넣지 않는다.
 
-### 사진 아카이브 보호 현황 (2001년~, 283G / 6.2만 파일)
+### 사진 — 두 갈래를 구분한다
+
+같은 "사진"이지만 **원본이 다른 별개 데이터**라 보호 경로도 다르다.
+
+**① 외장 아카이브 (2001년~, 283G / 6.2만 파일)** — `/Volumes/orico/photos`
 
 | 위험 | 대비 |
 |------|------|
-| 디스크 고장 | 사본 3벌 — `/Volumes/orico`(원본) · `zpool/photos` · `zpool2/orico`. 뒤 둘은 미러 풀 |
-| 실수 삭제·랜섬웨어 | `zpool/photos` 일일 ZFS 스냅샷 30일 보관 |
-| 화재·도난 | R2 `photo-r2` 오프사이트 (주 1회) |
+| 디스크 고장 | 사본 3벌 — 원본 · `zpool/photos` · `zpool2/orico`. 뒤 둘은 미러 풀 |
+| 실수 삭제·랜섬웨어 | `zpool/photos` 일일 ZFS 스냅샷 30일 |
+| 화재·도난 | R2 `photo-r2` 오프사이트 (msg10p에서 주 1회 직접 업로드) |
 | 비트 부패 | ZFS 미러 + 월간 scrub |
+
+**② iCloud 사진 라이브러리** — Parachute가 iCloud에서 원본을 내려받아 `zpool2/icloud`로 백업
+
+| 위험 | 대비 |
+|------|------|
+| 동기화 사고(한 기기에서 지우면 전파) | Parachute 백업이 iCloud와 독립 |
+| 버전 부재(full-dump 방식) | `zpool2/icloud` 일일 ZFS 스냅샷 30일 |
+| 화재·도난 | ✗ 미보호 (iCloud 자체가 클라우드 사본 역할) |
+
+> ### "Optimize Mac Storage"는 백업을 조용히 반쪽으로 만든다
+>
+> 한동안 `~/Pictures`를 restic으로 매일 백업했다. 그런데 스냅샷 크기가
+> **148 GiB → 145 → 141 → 104 GiB로 계속 줄고** 있었다. 사진이 줄어들 리가 없는데.
+>
+> 원인은 Photos의 **Optimize Mac Storage**였다. 디스크가 부족하면 iCloud가 로컬 원본을
+> 축소본으로 갈아치우는데, 백업은 그 축소본을 성실히 담고 있었다. 실제로 로컬
+> `originals`는 15,096개뿐이었던 반면, Parachute가 iCloud에서 받아온 백업은
+> **271,646개**였다 — 18배 차이.
+>
+> 즉 "매일 도는 사진 백업"이 있었지만 그건 **원본이 아니었다.** 아카이브를 지킨다면서
+> 썸네일을 백업하고 있었던 셈. restic `photo` 프로필을 제거하고 Parachute 쪽을
+> 정식 경로로 삼았다.
+>
+> **교훈**: 클라우드 동기화 폴더를 백업 소스로 삼을 때는, 그 폴더가 **실물을 담고
+> 있는지 플레이스홀더인지** 먼저 확인해야 한다. 백업 크기가 시간이 지나며 줄어들면
+> 그게 신호다.
 
 ## 자동화 원칙
 
@@ -256,6 +289,12 @@ Homebrew로 업그레이드하면 경로·해시가 바뀌어 **권한이 풀린
 ## 점검 루틴
 
 경보가 없다고 정상인 게 아니므로, 주기적으로 **결과물 기준**으로 확인한다.
+아래를 `backup-healthcheck.sh`로 자동화해 매일 07:30 텔레그램으로 받는다.
+문제가 있으면 제목이 `⚠️ 확인 필요 N건`, 없으면 `✅ 이상 없음`이라 한 줄로 판단된다.
+
+**맥의 예약 작업이 죽어도 여기서 잡힌다** — 맥을 직접 들여다보지 않아도 repo 스냅샷
+시각이 낡아지면 경고가 뜬다. 15개월 죽어 있던 그 백업도 이 점검이 있었다면 이틀 만에
+발견됐을 것이다.
 
 ```bash
 # 1. 백업 도구가 보고하는 최신 스냅샷 (유일하게 믿을 수 있는 증거)

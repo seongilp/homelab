@@ -29,12 +29,10 @@ nvme0n1 (SK hynix 1TB)      — OS(root) 전용, 풀 미포함
 | `zpool/ds920p` | 4.06T | 128K | lz4 | 퇴역한 Synology DS920+ 전체 덤프 |
 | `zpool/photos` | 283G | **1M** | on | 사진 원본 아카이브 (2001년~) |
 | `zpool/restic/mac` | 247G | 128K | zstd | restic 리포 — `~/work`, `~/Downloads` |
-| `zpool/restic/photo` | 288G | 128K | zstd | restic 리포 — Apple Photos |
-| `zpool/backup` | 184G | 128K | lz4 | rsync 평문 미러 |
-| `zpool/share` | 63.5G | 128K | lz4 | 작업 자료 |
+| `zpool/backup` | 187G | 128K | lz4 | rsync 평문 미러 |
 | `zpool2/mac_backup` | 1.12T | 128K | lz4 | 외장드라이브 미러 |
 | `zpool2/orico` | 686G | 128K | lz4 | 외장드라이브 미러 |
-| `zpool2/icloud` | 639G | 128K | lz4 | iCloud 일회성 덤프 |
+| `zpool2/icloud` | 639G | 128K | lz4 | Parachute iCloud 백업 |
 
 ### 이름이 곧 문서다
 
@@ -43,7 +41,11 @@ nvme0n1 (SK hynix 1TB)      — OS(root) 전용, 풀 미포함
 백업 타깃으로 착각해 한참 헤맸다(실체는 **일회성 NAS 이관 덤프**였다).
 `ds920p` / `archives` / `share`로 바꾸고 나서야 `zfs list` 한 번에 구조가 읽혔다.
 
-restic 리포도 여기저기 흩어져 있던 것을 `zpool/restic/{mac,photo}` 아래로 모았다.
+**그리고 이름이 읽히자 중복이 드러났다.** `share`(63.5G)는 `zpool2/orico/정리필요/`와
+같은 내용이었고, `archives`는 대부분 암호를 잃어 열 수 없는 repo였다. 이름이 `fs1`/`fs2`인
+동안에는 비교해볼 생각조차 못 했다. **정리의 첫 단계는 삭제가 아니라 이름 붙이기다.**
+
+restic 리포도 여기저기 흩어져 있던 것을 `zpool/restic/` 아래로 모았다.
 **이름을 바꿀 때는 참조부터 훑는다** — 실제로 이 검색이 백업 repo 경로, rsync 데몬
 모듈 설정, SELinux 파일 컨텍스트를 잡아냈다. 하나라도 놓쳤으면 다음 새벽에 조용히 실패했을 것.
 
