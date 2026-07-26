@@ -48,6 +48,7 @@ OOB: **NanoKVM** (Sipeed, RISC-V IP-KVM) — prodesk에 HDMI/USB로 물린 하�
 - [cloudflare-migration.md](docs/cloudflare-migration.md) — Workers 13종을 ebs로 이관 (어댑터 설계·캐시 계층·p99 튜닝)
 - [network.md](docs/network.md) — 2.5G 멀티기가 전환, 링크 이중화, NFS 자동복구
 - [storage.md](docs/storage.md) — ZFS 풀 레이아웃, 튜닝(ARC/recordsize), 디스크 검증
+- [prodesk.md](docs/prodesk.md) — 컴퓨트/미디어 노드 (VM 3대 · Immich·Pinchflat·Jellyfin · NFS 설계)
 - [backup.md](docs/backup.md) — 3-2-1 다층 백업 (rsync + restic + ZFS 스냅샷 + 오프사이트), 죽은 백업 탐지
 - [monitoring.md](docs/monitoring.md) — Beszel 대시보드 + 텔레그램 알림 (NAT 뒤 VM 연결)
 - [shell.md](docs/shell.md) — bash + starship 공통 셸 환경 (+ fish 선택)
