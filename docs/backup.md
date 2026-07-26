@@ -15,6 +15,7 @@
 |------|------|--------------|
 | 1 | **rsync** 평문 미러 | 원본 디스크 고장. 백업 도구 없이도 파일을 바로 꺼낼 수 있다 |
 | 2 | **restic** 스냅샷 | 실수 삭제·덮어쓰기. 과거 시점으로 되돌린다 |
+| 2' | **Litestream** 연속 복제 | DB의 최근 변경분. 주기적 덤프 사이의 공백(RPO)을 메운다 |
 | 3 | **ZFS 스냅샷** | 미러링된 사고. `rsync --delete`가 전파한 삭제를 되돌린다 |
 | 4 | **오프사이트**(S3 호환) | 화재·도난·집 단위 손실 |
 | 5 | **ZFS 미러 + 월간 scrub** | 디스크 고장·비트 부패 |
@@ -104,6 +105,8 @@ prodesk의 `data` 풀은 **단일 NVMe로 미러가 없다.** ZFS 체크섬으�
 
 | 시각 | 잡 | 내용 |
 |------|-----|------|
+| 상시 | **Litestream** | SQLite WAL 연속 복제 → `data/litestream` (RPO 10초) |
+| 매일 04:00 | `db-backup.sh` | 서비스 DB 덤프 + Litestream 복제본 → `msg10p:zpool/backup/prodesk-{db,litestream}` |
 | 매일 04:30 | `vm-backup.sh` | `data/vms` → `msg10p:zpool/backup/prodesk-vms` (ZFS 증분) |
 
 VM 이미지는 파일 rsync보다 **`zfs send`가 압도적으로 낫다.** 초기 전체 전송은 112 GiB로
@@ -131,6 +134,45 @@ VM 3대(zen · freebsd · freebsd-dev)가 모두 `data/vms` 아래 **raw 포맷*
 > 같은 일을 두 번 하면서 쓰기 증폭이 생긴다. raw로 두면 스냅샷·압축·sparse를 ZFS가
 > 전담해 계층이 하나로 정리된다. 변환은 `qemu-img convert -O raw` 후 libvirt XML의
 > `<driver type='qcow2'/>`를 `raw`로 바꾸면 된다(경로만 바꾸고 type을 놓치면 부팅 실패).
+
+### 서비스 DB — 계층을 겹친다
+
+prodesk에서 Immich(9000)·Pinchflat(9001)·Jellyfin(9002)을 돌린다. 세 서비스 모두
+**DB는 로컬 ZFS, 미디어는 msg10p NFS**로 분리했다.
+
+| 서비스 | DB | 미디어 |
+|--------|-----|--------|
+| Immich | PostgreSQL `data/immich-db` (recordsize **8K**) | `zpool/photos` (NFS, External Library) |
+| Pinchflat | SQLite `data/pinchflat` | `zpool/youtube` (NFS) |
+| Jellyfin | SQLite `data/jellyfin` | `zpool/youtube`·`zpool/ds920p` (NFS **ro**) |
+
+> **DB를 NFS에 두지 않는다.** PostgreSQL·SQLite 모두 NFS의 파일 락 의미가 자신이 기대하는
+> POSIX 락과 달라, 정전이나 네트워크 끊김에서 복구 불가능한 손상이 난다. 미디어만 NFS로 붙인다.
+
+> **썸네일은 백업하지 않는다.** `data/immich-lib`(5.7G)는 원본에서 재생성된다.
+> 이걸 빼서 백업 전송량이 6G → 251M 이 됐다.
+
+**두 계층을 겹쳤다.**
+
+```
+① Litestream (연속)   WAL 프레임을 초 단위 복제 → RPO 10초
+② 일일 전체 덤프      pg_dump -Fc / sqlite .backup → 되돌아갈 지점
+```
+
+Litestream만 두면 **복제본 자체가 손상되거나 잘못된 상태가 계속 흘러갈 때** 되돌아갈
+지점이 없다. 반대로 일일 덤프만 두면 최대 하루치를 잃는다. 서로 다른 실패를 막으므로
+둘 다 둔다.
+
+실행 중인 DB 파일을 그대로 복사하면 깨진 스냅샷이 된다. PostgreSQL은 `pg_dump`,
+SQLite는 `.backup` 명령을 쓴다(파일 복사와 다르다). 덤프는 `.tmp`에 쓴 뒤 성공했을 때만
+교체해, 중간에 실패해도 직전 정상본이 남는다.
+
+compose 파일과 `.env`도 함께 담는다 — DB만 있고 설정이 없으면 복구가 반쪽이다.
+`.env`에 DB 비밀번호가 들어 있어 아카이브는 0600으로 둔다.
+
+> **복제본이 쌓이는 것과 복구되는 것은 다른 문제다.** Litestream 설정 후
+> `litestream restore`로 실제 복원해 `PRAGMA integrity_check`와 테이블 수가
+> 원본과 일치하는지 확인했다. 이 검증 없이는 "백업이 있다"고 말할 수 없다.
 
 ### restic 리포
 

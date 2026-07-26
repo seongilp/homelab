@@ -33,6 +33,16 @@ nvme0n1 (SK hynix 1TB)      — OS(root) 전용, 풀 미포함
 | `zpool2/mac_backup` | 1.12T | 128K | lz4 | 외장드라이브 미러 |
 | `zpool2/orico` | 686G | 128K | lz4 | 외장드라이브 미러 |
 | `zpool2/icloud` | 639G | 128K | lz4 | Parachute iCloud 백업 |
+| `zpool/youtube` | – | **1M** | lz4 | Pinchflat 다운로드 (NFS → prodesk) |
+
+prodesk의 `data` 풀은 서비스별로 데이터셋을 나눠 **recordsize를 워크로드에 맞춘다.**
+
+| 데이터셋 | recordsize | 근거 |
+|----------|-----------|------|
+| `data/vms` | 64K | VM 랜덤 I/O |
+| `data/immich-db` | **8K** | PostgreSQL 페이지 크기 |
+| `data/immich-lib` | 1M | 썸네일·인코딩 파일 (순차) |
+| `data/db-dumps` · `data/litestream` | 기본(zstd) | 덤프·WAL 아카이브 |
 
 ### 이름이 곧 문서다
 
@@ -59,7 +69,7 @@ grep -rn 'zpool/<옛이름>' /etc /usr/local ~/...
 ### prodesk — NVMe 단일 풀
 
 ```
-data  464G  (13% 사용)  — VM 이미지 3대 (zen, freebsd, freebsd-dev) · 전부 raw
+data  464G  (15% 사용)  — VM 3대(raw) + 서비스 DB(Immich/Pinchflat/Jellyfin)
 └─ nvme (WD Black SN750 500GB)   ※ 단일 vdev — 체크섬 감지만, 복구는 백업 의존
 sda   (Crucial MX500 1TB, SATA)  — Ubuntu 시스템 + ebs 백업 수신
 ```
