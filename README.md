@@ -38,7 +38,9 @@ OOB: **NanoKVM** (Sipeed, RISC-V IP-KVM) — prodesk에 HDMI/USB로 물린 하�
                           (15.1)  (CURRENT)  모니터링 ← 5노드 감시
 
   네트워크 이중화: msg10p·prodesk·Mac 모두 주 링크(2.5G) 죽으면 자동 폴백
-  백업 흐름: Mac ─rsync/restic→ msg10p(로컬) ─restic→ 클라우드(오프사이트)
+  백업 흐름: Mac     ─rsync/restic→ msg10p(로컬) ─restic→ 클라우드(오프사이트)
+             ebs     ─rsync→ msg10p + prodesk (이중 목적지, 매일)
+             prodesk ─zfs send→ msg10p (VM 증분, 매일)
 ```
 
 ## 문서

@@ -33,7 +33,7 @@
 |--------|--------|------|
 | MacBook (`mbpr`) | DHCP | 백업 소스 |
 | `msg10p` | 192.168.123.100 | 백업 종착지 (HPE MicroServer Gen10 Plus, ZFS) |
-| `prodesk` | 192.168.123.109 | 랩 서버 (libvirt VM) |
+| `prodesk` | 192.168.123.116 (유선) / .109 (무선) | 랩 서버 (libvirt VM) |
 | `ebs` (`tinym72e`) | 192.168.123.105 | 상시 가동 소형 노드 (Beszel 허브) |
 
 > **백업 설정에는 오버레이 VPN 주소를 쓰지 말 것.** VPN 클라이언트가 꺼져 있으면
@@ -70,6 +70,60 @@ Parachute는 full-dump로 이전 상태를 지운다. 스냅샷이 그 계층을
 
 `/etc/cron.d/{zfs-auto-snapshot,photo-offsite-r2,zfs-scrub}`, 스크립트는 `/usr/local/sbin/`.
 오프사이트를 **맥이 아니라 msg10p에서** 실행하는 이유: 맥 전원·외장드라이브 연결과 무관하게 돌아간다.
+
+### 백업 잡 (ebs → prodesk · msg10p)
+
+ebs는 웹앱·봇 13종을 self-host하는 상시 노드다. 매일 03:30에 자기 데이터를
+**두 서버로 동시에** 밀어 넣는다 (`~/cfbots/ebs-backup.sh`, ubuntu crontab).
+
+| 대상 | 내용 |
+|------|------|
+| `cfbots/` | Cloudflare Workers 이관본. `_kv`·`_import`·`_data` 제외 |
+| `_backup_stage/db/` | SQLite **`.backup` 스냅샷** — 서비스 실행 중에도 정합성 보장 |
+| `_backup_stage/etc/` | systemd 유닛 13종 · crontab · dpkg 선택목록 · docker ps |
+| `apps/` | 웹앱 |
+| `/opt/legalize/` | 판례 코퍼스 1.9G — **23,710개가 git untracked** |
+| `/etc/` | 시스템 설정 전체 (재구축용) |
+| `home/*` | git 저장소가 아닌 홈 디렉터리 (ig-notifier, naverwatch 등) |
+
+목적지: `prodesk:~/backups/ebs`, `msg10p:/zpool/backup/ebs`
+
+> **코드는 백업하지 않는다.** git 저장소 5종 전부 미푸시 커밋 0으로 GitHub와 동기화돼
+> 있다. 백업 대상은 **git이 추적하지 않는 데이터**뿐이다. 반대로 말하면, `.git`이 있다고
+> 안심하면 안 된다 — `corpus`는 git 저장소 **안에** 있었지만 23,710개가 전부 untracked라
+> 원격에 단 하나도 올라가 있지 않았다. `git status`로 확인해야 알 수 있다.
+
+> **백업 목적지가 어느 파일시스템인지 확인할 것.** 이 백업은 원래 양쪽 다 `~/backups`로
+> 갔는데, msg10p의 홈은 단일 NVMe의 XFS였다. 미러도 스냅샷도 없는 곳에 백업을 쌓고
+> 있었던 셈. `/zpool/backup/ebs`로 옮겨 **ZFS 미러 + 일일 스냅샷 30일** 보호를 받게 했다.
+
+### 백업 잡 (prodesk → msg10p)
+
+prodesk의 `data` 풀은 **단일 NVMe로 미러가 없다.** ZFS 체크섬으로 손상을 감지는 하지만
+복구할 사본이 없어, 이 복제가 유일한 방어선이다.
+
+| 시각 | 잡 | 내용 |
+|------|-----|------|
+| 매일 04:30 | `vm-backup.sh` | `data/vms` → `msg10p:zpool/backup/prodesk-vms` (ZFS 증분) |
+
+VM 이미지는 파일 rsync보다 **`zfs send`가 압도적으로 낫다.** 초기 전체 전송은 112 GiB로
+25분 걸렸지만, 이후 증분은 **3초**에 끝난다. 변경 블록만 가기 때문이다.
+
+- `zfs send -p`로 보내 `compression=lz4`·`recordsize=64K` 같은 속성을 보존한다.
+  VM은 랜덤 I/O라 recordsize가 성능에 직결되므로 이게 빠지면 안 된다.
+- 기준점은 **원격 스냅샷 목록을 최신순으로 훑어 로컬에도 남아 있는 것**을 고른다.
+  한 회차를 걸러도 다음 회차가 알아서 복구된다.
+- 스냅샷은 소스 7개 / 원격 5개까지 유지. **원격을 안 지우면 매일 하나씩 무한 누적된다.**
+
+> **`zfs send` 크기 ≠ 데이터셋 `USED`.** `data/vms`는 57.6G인데 전송량은 **112 GiB**였다.
+> sparse raw 이미지의 논리 블록을 보내기 때문. 전송 시간을 잡을 때는 `zfs send -nvP`로
+> 실제 크기를 먼저 확인한다.
+
+> **실행 중인 VM의 스냅샷은 크래시 컨시스턴트다** — 전원이 갑자기 나간 것과 동등하다.
+> FreeBSD는 저널링이 있어 대개 정상 부팅되지만, 완전한 정합성이 필요하면 스냅샷 직전에
+> `virsh suspend`를 걸거나 게스트에서 sync 한다.
+
+`zen` VM은 `/var/lib/libvirt/images/`(ext4 루트)에 있어 이 복제에 포함되지 않는다.
 
 ### restic 리포
 

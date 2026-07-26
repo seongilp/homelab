@@ -29,7 +29,33 @@ nmcli con mod "eno1"   ipv4.route-metric 200   # 대기
 ```
 
 - **msg10p**: USB 2.5G (metric 100) → 내장 1G (metric 200)
-- **prodesk**: 유선 2.5G (metric 100) → Wi-Fi (metric 600) — 리눅스가 유선을 자동 우선
+- **prodesk**: 유선 2.5G (metric 100, `.116`) → Wi-Fi (metric 600, `.109`)
+
+주소는 **라우터 DHCP 예약**으로 MAC에 고정한다. NetworkManager 수동 IP와 라우터 예약을
+양쪽에서 걸면 충돌 소지가 있으니 한 곳에서만 관리한다.
+
+### default metric만 보면 속는다 — 같은 서브넷은 링크 경로가 이긴다
+
+prodesk가 유선(metric 100)·무선(metric 600) 둘 다 붙어 있는데도 **NAS 트래픽이 전부
+무선을 타고 있었다.** 백업이 2.5G의 3분의 1 속도로 돌고 있었는데 아무도 몰랐다.
+
+```
+default via .1 dev <유선> metric 100    ← 여기만 보면 유선이 우선
+default via .1 dev <무선> metric 600
+192.168.123.0/24 dev <무선> metric 600  ← 그런데 링크 경로가 무선에만 있었다
+```
+
+`default`는 **서브넷 밖으로 나갈 때** 쓰는 경로다. 같은 `/24` 안에 있는 NAS로는
+`192.168.123.0/24` 링크 경로가 선택되는데(longest prefix match), 그게 무선에만 있었다.
+무선을 수동 IP로 잡아둔 탓에 NM이 무선에만 링크 경로를 깔았던 것.
+
+**확인은 `ip route`가 아니라 `ip route get <목적지>`로 한다.**
+
+```bash
+ip route get 192.168.123.100      # 실제로 어느 인터페이스로 나가는지
+```
+
+고친 뒤 실측: **760~938 Mbps → 2,125 Mbps** (SSH 암호화 포함, 2.3배).
 
 ## NFS 자동복구 워치독
 

@@ -29,7 +29,7 @@ nvme0n1 (SK hynix 1TB)      — OS(root) 전용, 풀 미포함
 | `zpool/ds920p` | 4.06T | 128K | lz4 | 퇴역한 Synology DS920+ 전체 덤프 |
 | `zpool/photos` | 283G | **1M** | on | 사진 원본 아카이브 (2001년~) |
 | `zpool/restic/mac` | 247G | 128K | zstd | restic 리포 — `~/work`, `~/Downloads` |
-| `zpool/backup` | 187G | 128K | lz4 | rsync 평문 미러 |
+| `zpool/backup` | 247G | 128K | lz4 | rsync 평문 미러 + ebs/prodesk 백업 수신 |
 | `zpool2/mac_backup` | 1.12T | 128K | lz4 | 외장드라이브 미러 |
 | `zpool2/orico` | 686G | 128K | lz4 | 외장드라이브 미러 |
 | `zpool2/icloud` | 639G | 128K | lz4 | Parachute iCloud 백업 |
@@ -59,13 +59,17 @@ grep -rn 'zpool/<옛이름>' /etc /usr/local ~/...
 ### prodesk — NVMe 단일 풀
 
 ```
-data  464G  (9% 사용)  — 컴퓨트 작업 공간 / VM
+data  464G  (12% 사용)  — VM 이미지 (freebsd, freebsd-dev)
 └─ nvme (WD Black SN750 500GB)   ※ 단일 vdev — 체크섬 감지만, 복구는 백업 의존
-sda   (Crucial MX500 1TB, SATA)  — Ubuntu 시스템
+sda   (Crucial MX500 1TB, SATA)  — Ubuntu 시스템 + zen VM + ebs 백업 수신
 ```
 
 단일 디스크 풀이라 자가 복구(미러)는 없지만 체크섬으로 손상은 감지된다.
-중요 데이터는 msg10p로 백업. (원래 Windows 듀얼부트였으나 밀고 ZFS로 전환)
+(원래 Windows 듀얼부트였으나 밀고 ZFS로 전환)
+
+**"복구는 백업 의존"이라고 써두고 정작 백업이 없었다.** 설계 문서에 적어둔 전제를
+구현했는지는 별개 문제다. 2026-07-26에야 `data/vms` → `msg10p:zpool/backup/prodesk-vms`
+일일 ZFS 증분 복제를 걸었다 → [backup.md](backup.md)
 
 ## 디스크 검증이 먼저
 
