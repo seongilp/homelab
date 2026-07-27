@@ -11,8 +11,12 @@ HP EliteDesk 800 G6 Desktop Mini
   RAM   64GB
   SSD   Crucial MX500 1TB (SATA)  — Ubuntu 26.04 루트
   NVMe  WD Black SN750 500GB      — ZFS `data` 풀
-  NET   USB 2.5G (주) + Wi-Fi (폴백) → [network.md](network.md)
+  NET   USB 2.5G Realtek RTL8156 (주, .111) + Wi-Fi (폴백, .109) → [network.md](network.md)
 ```
+
+> 랜카드는 2026-07-27에 갈았다. 이전 iptime 어댑터가 **3일간 686번 USB 재열거**를 일으켜
+> cloudflared 끊김과 Beszel 헛알림의 원인이 되고 있었다. 증상이 조용해서 찾는 데
+> 오래 걸렸다 — [network.md](network.md#usb-랜카드가-조용히-죽는-법) 참고.
 
 **미니 PC라 드라이브 베이가 없다.** 그래서 대용량 데이터는 전부 msg10p에 두고 NFS로 붙인다.
 이 제약이 아래 모든 설계 결정의 출발점이다.
@@ -120,6 +124,51 @@ export도 `192.168.123.111`(prodesk) 한정으로 제한한다.
 > 설계 문서에 적어둔 전제를 실제로 구현했는지는 별개 문제다.
 
 또한 ebs의 백업을 받는 **수신처** 역할도 한다 (`~/backups/ebs`, msg10p와 이중 목적지).
+
+## 하드웨어 이상징후 보고
+
+```
+매일 07:20  hw-report.sh  ──ssh──▶  msg10p:/zpool/backup/prodesk-hw/status.txt
+매일 07:30  msg10p 의 backup-healthcheck.sh 가 읽어 텔레그램으로 통보
+```
+
+**밀어넣는 방향으로 만들었다.** msg10p→prodesk SSH를 새로 뚫으면 모든 백업의 종착지가
+다른 서버에 들어갈 수 있게 된다. 백업이 이미 prodesk→msg10p 방향이라 신뢰 관계가 늘지 않는다.
+
+감시 대상은 **누적이 아니라 24시간 증가분**이다. 누적은 늘기만 해서 악화 여부를 못 알려준다.
+
+| 항목 | 경보 조건 | 왜 보는가 |
+|------|-----------|-----------|
+| USB 재열거 | >5회/일 | 랜카드가 조용히 죽는 걸 잡는다 |
+| NVMe AER Correctable | >2,000건/일 | 평시 ~960건. 급증이 링크 열화 신호 |
+| AER fatal · nonfatal | >0 | 복구 못 한 에러 = 실제 손상 |
+| NVMe 미디어 오류 | >0 | 디스크 자체 손상 |
+| ZFS `data` 체크섬 | >0 | 단일 vdev라 복구 수단이 없다 |
+| 보고 신선도 | >26시간 | **값이 안 오는 것 자체가 신호**다 |
+
+마지막 항목이 중요하다. prodesk가 죽거나 주소가 바뀌어 조용히 단절되는 경우를 잡아준다.
+
+### NVMe PCIe AER — 시끄럽지만 무해한 것
+
+`data` 풀의 SN750이 시간당 40건씩 Correctable 에러를 낸다.
+
+```
+PCIe Bus Error: severity=Correctable, type=Physical Layer, (Receiver ID)
+  [ 0] RxErr (First)
+
+RxErr 2612 · BadTLP 0 · BadDLLP 0 · fatal 0 · nonfatal 0
+```
+
+**RxErr만 있고 BadTLP·BadDLLP가 0인 게 진단의 핵심이다.** BadTLP/BadDLLP는 PHY를 통과한 뒤
+CRC에서 깨진 패킷이다. 그게 0이면 **깨진 데이터가 물리 계층 위로 올라온 적이 없다**는 뜻이고,
+링크 계층 재전송으로 전부 메워졌다는 얘기다. ZFS 체크섬 0·SMART 미디어 오류 0이 이를 뒷받침한다.
+
+이 조합은 **ASPM L1.2 복귀 서명**으로 본다. 저전력 상태에서 깨어날 때 수신부가 비트 락을
+다시 잡는 구간에서 쓰레기 심볼이 잡히는 것. 접촉 불량이었다면 부하에 몰리고
+BadTLP가 같이 오르며 링크 폭이 강등되는데, 셋 다 아니다(8GT/s x4 유지).
+
+확정하려면 `pcie_aspm.policy=performance`로 L1을 끄고 관찰하면 된다. 다만 지금은
+실익이 로그가 조용해지는 정도라 **감시만 걸고 두는 쪽**을 택했다.
 
 
 ## 메모리 — VM 5대 + 컨테이너 6종

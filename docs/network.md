@@ -29,10 +29,32 @@ nmcli con mod "eno1"   ipv4.route-metric 200   # 대기
 ```
 
 - **msg10p**: USB 2.5G (metric 100) → 내장 1G (metric 200)
-- **prodesk**: 유선 2.5G (metric 100, `.116`) → Wi-Fi (metric 600, `.109`)
+- **prodesk**: 유선 2.5G (metric 102, `.111`) → Wi-Fi (metric 600, `.109`)
 
 주소는 **라우터 DHCP 예약**으로 MAC에 고정한다. NetworkManager 수동 IP와 라우터 예약을
 양쪽에서 걸면 충돌 소지가 있으니 한 곳에서만 관리한다.
+
+> 예약은 MAC에 묶인다. **랜카드를 갈면 예약이 안 따라온다** — 2026-07-27에 prodesk
+> 어댑터를 교체했더니 `.116` 예약이 무효가 되어 `.111`을 받았고, 그 주소를 참조하던
+> 여섯 곳이 한꺼번에 끊겼다. 아래 [참조 추적](#주소를-바꾸면-참조를-전부-찾아야-한다) 참고.
+
+### 폴백은 살아 있을 때만 폴백이다
+
+이중화를 걸어두면 안심하게 되는데, **대기 링크가 조용히 죽어 있으면 이중화가 아니다.**
+
+2026-07-27에 prodesk 무선이 DHCP 임대를 잃고 IPv4 없이 L2만 붙어 있었다.
+`nmcli`는 `connected`로 보고했고 SSID도 정상이었다 — 주소만 없었다.
+그 상태에서 유선을 뽑자 NetworkManager가 **IPv4가 없는 무선을 기본 경로로 세웠고**,
+prodesk는 LAN·Tailscale·터널이 전부 끊긴 완전 고립 상태가 됐다.
+
+```bash
+nmcli con up <무선>          # 재연결 한 번으로 즉시 임대 획득
+```
+
+임대 만료 후 NM이 갱신을 포기하고 방치한 것이었다. 배운 것은 둘이다.
+
+- **`connected`는 IPv4가 있다는 뜻이 아니다.** `ip -br -4 addr`로 주소를 직접 확인해야 한다
+- 폴백은 **주기적으로 실제 통신을 시켜봐야** 산 것인지 안다 (`ping -I <폴백> <목적지>`)
 
 ### default metric만 보면 속는다 — 같은 서브넷은 링크 경로가 이긴다
 
@@ -56,6 +78,69 @@ ip route get 192.168.123.100      # 실제로 어느 인터페이스로 나가�
 ```
 
 고친 뒤 실측: **760~938 Mbps → 2,125 Mbps** (SSH 암호화 포함, 2.3배).
+
+## USB 랜카드가 조용히 죽는 법
+
+prodesk의 2.5G USB 어댑터(iptime, `0:e0:4c` OUI)가 **3일간 686번** 버스에서 사라졌다 돌아왔다.
+그동안 아무 알림도 없었다.
+
+```
+r8152-cfgselector 2-3: USB disconnect, device number 57
+r8152 … : Tx status -108              ← ESHUTDOWN, 전송 중 끊김
+usb 2-3: new SuperSpeed USB device number 58
+r8152 … : renamed from eth0           ← 드라이버 재probe
+r8152 … : carrier on                  ← 4초 뒤 복구
+```
+
+**링크 플랩이 아니라 USB 장치 재열거다.** 이게 안 보이는 이유가 있다.
+
+- 4초 만에 복구된다
+- 인터페이스 이름이 `enx<MAC>` 형식이라 **재열거돼도 이름이 그대로**다
+- IP도 그대로 돌아온다
+- `ethtool`은 평소에 `2500Mb/s Full, Link detected: yes`로 멀쩡하다
+
+증상은 엉뚱한 곳에서 터졌다. cloudflared가 `network is unreachable`로 재연결을 반복했고,
+Beszel이 prodesk 경유 VM들을 `down`으로 오보했다. **어제 그걸 무선 탓으로 결론지었는데
+절반만 맞았다** — 유선 어댑터도 같은 증상을 내고 있었다.
+
+### 진단: 링크 문제와 버스 문제를 가른다
+
+```bash
+journalctl -k -b | grep -c "USB disconnect"      # 재열거 횟수 (정상이면 0)
+journalctl -k -b | grep "renamed from eth0"      # 있으면 드라이버 재probe = 버스 문제
+cat /sys/bus/usb/devices/<포트>/devnum           # 부팅 후 커진 만큼 재열거됐다
+ip -s link show <nic>                            # errors 가 0이면 링크는 정상
+```
+
+`renamed from eth0`가 핵심 단서다. 링크만 끊긴 거라면 `carrier off/on`만 남지
+드라이버가 다시 붙지는 않는다.
+
+배제할 것들도 미리 확인해 두면 교체 판단이 빨라진다.
+
+| 확인 | 정상이면 |
+|------|---------|
+| `<포트>/power/control` | `on` = autosuspend 이미 비활성 → 전원관리 원인 아님 |
+| `ethtool` Speed/Duplex | 협상은 정상 → 케이블·스위치 협상 문제 아님 |
+| `ip -s link` errors | 0 → 프레임 손상 아님 |
+
+셋 다 정상인데 재열거만 반복되면 **어댑터 하드웨어**다. 교체 후 즉시 0회가 됐다.
+
+### 주소를 바꾸면 참조를 전부 찾아야 한다
+
+어댑터를 갈면 MAC이 바뀌고, **DHCP 예약은 MAC에 묶여 있으므로 무효가 된다.**
+prodesk는 `.116` → `.111`로 바뀌었고 여섯 곳이 동시에 끊겼다.
+
+| 참조 위치 | 성격 |
+|---|---|
+| Cloudflare 터널 ingress | 원격 SaaS 설정 |
+| msg10p `/etc/exports` ×3 | 다른 서버의 접근 제어 |
+| ebs 백업 스크립트 `PRODESK=` | 다른 서버의 스크립트 |
+| Beszel DB (`systems` 테이블) | **애플리케이션 DB 안** — grep에 안 잡힌다 |
+| `~/.ssh/config` | 로컬 |
+| `docs/*.md` | 문서 |
+
+터널 ingress는 아예 **`localhost`로 바꿨다.** cloudflared가 그 호스트 안에서 도니
+IP 변동에 영향받을 이유가 없었다. 참조를 고치는 것보다 **참조를 없애는 게** 낫다.
 
 ## NFS 자동복구 워치독
 
