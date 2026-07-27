@@ -1,6 +1,6 @@
 # Kubernetes Lab — Fedora CoreOS
 
-[prodesk](prodesk.md) 위에 **Fedora CoreOS VM으로 올린 k8s 테스트 클러스터**.
+[prodesk](prodesk.md) 위에 **Fedora CoreOS VM으로 올린 k8s 클러스터**.
 kubeadm으로 직접 구성했다. 관리형도, k3s 같은 배포판도 쓰지 않는다 —
 control plane이 무엇으로 이루어지는지 보는 게 목적이라서다.
 
@@ -9,17 +9,50 @@ FreeBSD 랩이 커널을 보는 자리라면, 여기는 **불변 OS 위에서 �
 
 ## 구성
 
+**control plane 3대 HA.** etcd가 과반으로 동작하므로 3대여야 1대 장애를 견딘다.
+2대는 오히려 더 나쁘다 — 1대만 죽어도 과반이 깨진다.
+
 | 노드 | 역할 | IP | 스펙 |
 |------|------|-----|------|
 | `fcos-cp1` | control-plane | 192.168.122.50 | 4 vCPU / 8G / 60G |
+| `fcos-cp2` | control-plane | 192.168.122.52 | 4 vCPU / 8G / 60G |
+| `fcos-cp3` | control-plane | 192.168.122.53 | 4 vCPU / 8G / 60G |
 | `fcos-w1` | worker | 192.168.122.51 | 4 vCPU / 8G / 60G |
+| `fcos-w2` | worker | 192.168.122.54 | 4 vCPU / 4G / 60G |
+| **VIP** | kube-vip | **192.168.122.49** | API 엔드포인트 |
 
 ```
 OS        Fedora CoreOS 44.20260707.3.1 (stable)
 k8s       v1.36.3   (kubeadm · kubelet · kubectl)
 런타임    CRI-O 1.36.2
 CNI       Flannel   pod 10.244.0.0/16 · svc 10.96.0.0/12
+HA        kube-vip v1.2.1 (ARP/L2, leader election)
+애드온    metrics-server
 네트워크  libvirt default NAT, DHCP 예약으로 IP 고정
+```
+
+VIP `.49`도 **DHCP 예약으로 잡아뒀다** — libvirt의 DHCP 범위가 `.2~.254`라
+그냥 두면 다른 VM에 그 주소가 나갈 수 있다. 더미 MAC으로 예약해 막았다.
+
+## HA — 엔드포인트가 먼저다
+
+`kubeadm init`을 `--control-plane-endpoint` 없이 하면 **나중에 cp를 못 늘린다.**
+
+```
+unable to add a new control plane instance to a cluster that
+doesn't have a stable controlPlaneEndpoint address
+```
+
+당연한 제약이다. cp가 여러 대면 워커와 kubectl이 **어느 주소로 API를 찾을지**가
+정해져 있어야 한다. 이 랩도 처음엔 단일 cp로 세웠다가 이 벽에 막혀 재구축했다.
+**HA로 갈 생각이 조금이라도 있으면 처음부터 endpoint를 박아야 한다.**
+
+앞단은 kube-vip을 골랐다. cp 노드에 static pod로 떠서 리더가 VIP를 ARP로
+가져가는 방식이라 **별도 로드밸런서 VM이 필요 없다.** prodesk에 HAProxy를 두는
+방법도 있지만, 그러면 하이퍼바이저가 단일 실패점이 된다.
+
+```
+prodesk:6443 ──DNAT──> VIP 192.168.122.49 ──(리더)──> cp1 | cp2 | cp3
 ```
 
 ## 왜 CoreOS인가
@@ -90,7 +123,59 @@ CoreOS의 `/usr/local`은 `/var/usrlocal` 심볼릭 링크라 쓸 수 있다. in
 실패한다. **레이어링은 재부팅해야 반영된다.** 설치와 활성화 사이에 재부팅이 들어가야
 한다는 게 이 OS의 리듬이다.
 
-### 5. SELinux는 permissive로 뒀다
+### 5. kube-vip이 첫 노드에만 있었다 — HA가 아니었던 HA
+
+3대를 붙이고 `virsh destroy`로 VIP 리더(cp1)를 죽였다. **3분이 지나도 복구되지
+않았다.**
+
+```
+21:33:04  Unable to connect to the server
+21:33:13  Unable to connect to the server
+...
+21:36:13  Unable to connect to the server     ← 계속
+```
+
+`kubeadm join --control-plane`은 **kubeadm이 만드는 static pod만 생성한다** —
+etcd·apiserver·controller-manager·scheduler 넷. 직접 넣은 `kube-vip.yaml`은
+복제 대상이 아니다.
+
+```
+cp1: etcd apiserver controller-manager scheduler kube-vip
+cp2: etcd apiserver controller-manager scheduler          ← 없음
+cp3: etcd apiserver controller-manager scheduler          ← 없음
+```
+
+VIP를 이어받을 노드가 애초에 없었다. **etcd는 3중화됐는데 진입점은 1중화**인
+상태였고, 노드 목록만 보면 멀쩡한 HA처럼 보인다.
+
+세 노드 모두에 manifest를 깔고 다시 죽였다.
+
+```
+21:38:28 (+0s)   ...
+21:38:47 (+19s)  ok    ← cp3가 VIP 인수
+```
+
+**19초.** cp1이 죽은 채로 `kubectl scale`도 정상 동작했고, 복귀 후 etcd 3멤버가
+같은 raft index로 맞았다.
+
+> 죽여보지 않았으면 몰랐다. HA 구성은 **장애를 실제로 만들어봐야** 검증된다.
+> 노드가 Ready로 보이는 것과 장애를 견디는 것은 다른 문제다.
+
+### 6. metrics-server가 kubelet 인증서를 거부했다
+
+`k9s`에서 CPU/MEM이 계속 `n/a`였다.
+
+```
+Failed to scrape node: x509: cannot validate certificate for
+192.168.122.52 because it doesn't contain any IP SANs
+```
+
+kubelet의 serving 인증서가 self-signed이고 IP SAN이 없다. 정석은 kubelet
+serving cert rotation(`serverTLSBootstrap: true`)을 켜고 CSR을 승인하는 것이지만,
+**노드를 추가할 때마다 CSR 승인이 따라붙는다.** 테스트 랩이라
+`--kubelet-insecure-tls`로 넘어갔다. 부채 목록에 올린 항목.
+
+### 7. SELinux는 permissive로 뒀다
 
 CRI-O를 비표준 경로에 두는 구성이라 라벨링 문제를 피했다. **테스트 클러스터라서
 내린 결정**이고, enforcing으로 되돌리려면 `/usr/local/libexec/crio`와 `/opt/cni/bin`의
@@ -101,7 +186,7 @@ CRI-O를 비표준 경로에 두는 구성이라 라벨링 문제를 피했다. 
 API 서버가 libvirt NAT 안에 있어 밖에서 안 보인다. prodesk에 DNAT를 걸어 통과시킨다.
 
 ```
-mac ──k9s──> prodesk:6443 ──DNAT──> 192.168.122.50:6443
+mac ──k9s──> prodesk:6443 ──DNAT──> VIP 192.168.122.49 ──> 리더 cp
 ```
 
 - apiserver 인증서 SAN에 prodesk의 LAN/Tailscale IP를 넣고 재발급 (`kubeadm-config`
@@ -116,6 +201,10 @@ mac ──k9s──> prodesk:6443 ──DNAT──> 192.168.122.50:6443
 > 깨진다. 실제로 `.116 → .111` 변경 때 겪었다. IP를 세 군데에 박아둔 구조라
 > 어느 하나만 고치면 조용히 안 된다.
 
+인증서 SAN은 **cp 3대 모두** 갱신해야 한다. VIP 리더가 어느 노드로든 넘어갈 수
+있으므로, 한 대만 고치면 페일오버 후에 TLS 검증이 깨진다. `kubeadm join` 시점의
+인증서에는 VIP와 자기 IP만 들어 있다.
+
 ## 자동 업데이트를 껐다
 
 Zincati(CoreOS 자동 업데이트)를 mask했다. **클러스터가 도는 중에 노드가 알아서
@@ -127,16 +216,34 @@ Zincati(CoreOS 자동 업데이트)를 mask했다. **클러스터가 도는 중�
 
 ## 백업 관점의 예외
 
-FCOS VM 2대는 **qcow2**다. prodesk의 다른 VM은 전부 raw인데([prodesk.md](prodesk.md)),
+FCOS VM 5대는 **qcow2**다. prodesk의 다른 VM은 전부 raw인데([prodesk.md](prodesk.md)),
 FCOS 배포 이미지가 qcow2라 그대로 썼다.
 
 `data/vms` 데이터셋 안에 있으므로 **msg10p로의 zfs send 백업에는 포함된다.**
 포맷만 다르다.
 
+## 자원
+
+노드 5대를 올린 뒤 prodesk 상태. 클러스터는 생각보다 가볍다.
+
+```
+fcos-cp1   172m (4%)   1387Mi (17%)
+fcos-cp2   178m (4%)   1067Mi (13%)
+fcos-cp3   183m (4%)   1040Mi (13%)
+fcos-w1     42m (1%)    647Mi ( 8%)
+fcos-w2     67m (1%)    640Mi (16%)
+```
+
+prodesk 전체로는 **VM 할당 62G / 물리 61G**로 오버커밋 상태지만
+실사용은 그 절반이고 PSI는 0이다. w2를 4G로 준 이유이기도 하다 —
+할당 합계가 물리를 넘기 시작하면 여유분을 실사용 기준으로 봐야 한다.
+([prodesk.md](prodesk.md)의 메모리 절)
+
 ## 다음
 
-- [ ] control-plane taint 되살리기 (워커가 생겼으니 시스템 파드용으로 비워두기)
+- [ ] control-plane taint 되살리기 (워커가 2대이므로 cp는 시스템 파드용으로 비우기)
 - [ ] SELinux enforcing 복귀
-- [ ] 워커 1대 더 — 진짜 스케줄링 분산 보기
+- [ ] kubelet serving cert rotation + CSR 자동 승인 (metrics-server 정석 해법)
 - [ ] Ingress + cert-manager
 - [ ] etcd 백업을 msg10p 백업 흐름에 연결
+- [ ] 노드 재부팅 조율자(kured) — Zincati를 다시 켜려면 필요

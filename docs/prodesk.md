@@ -49,8 +49,9 @@ recordsize를 워크로드에 맞추는 게 요점이다. Postgres에 128K를 �
 | `freebsd-dev` | 8 / 12G | FreeBSD 16.0-CURRENT — 커널 학습 ([freebsd.md](freebsd.md)) |
 | `freebsd` | 8 / 12G | FreeBSD 15.1-RELEASE — jail·pkgbase 실습 |
 | `zen` | 2 / 2G | 실험용 |
-| `fcos-cp1` | 4 / 8G | Fedora CoreOS — k8s control plane ([kubernetes.md](kubernetes.md)) |
+| `fcos-cp1` · `cp2` · `cp3` | 4 / 8G ×3 | Fedora CoreOS — k8s control plane HA ([kubernetes.md](kubernetes.md)) |
 | `fcos-w1` | 4 / 8G | Fedora CoreOS — k8s worker |
+| `fcos-w2` | 4 / 4G | Fedora CoreOS — k8s worker |
 
 **전부 `data/vms` 아래**에 둔다. FreeBSD·zen은 raw 포맷이다.
 이들을 qcow2에서 raw로 옮긴 이유와 과정은 [backup.md](backup.md)에 정리했다.
@@ -59,7 +60,7 @@ recordsize를 워크로드에 맞추는 게 요점이다. Postgres에 128K를 �
 > 데이터셋 밖이라 **백업에서 조용히 누락돼 있었다.** VM 하나가 다른 파일시스템에 있으면
 > 이런 일이 생긴다.
 
-> FCOS 2대는 **qcow2**다 — 배포 이미지가 qcow2라 그대로 썼다. 포맷은 다르지만
+> FCOS 5대는 **qcow2**다 — 배포 이미지가 qcow2라 그대로 썼다. 포맷은 다르지만
 > `data/vms` 안에 있어 zfs send 백업에는 포함된다. 위 `zen` 건과 달리 조용한 누락은 아니다.
 
 ## 서비스 (Docker)
@@ -171,17 +172,21 @@ BadTLP가 같이 오르며 링크 폭이 강등되는데, 셋 다 아니다(8GT/
 실익이 로그가 조용해지는 정도라 **감시만 걸고 두는 쪽**을 택했다.
 
 
-## 메모리 — VM 5대 + 컨테이너 6종
+## 메모리 — VM 8대 + 컨테이너 6종
 
-k8s 랩([kubernetes.md](kubernetes.md))으로 VM 2대가 늘었을 때의 스냅샷.
+k8s 랩([kubernetes.md](kubernetes.md))이 5노드로 커진 뒤의 스냅샷.
 
 ```
-물리 61G          used 33G · available 28G · swap 5.5G/8G
-VM 할당 합계      42.9G   (freebsd 12G ×2 · fcos 8G ×2 · zen 2G)
-VM 실제 RSS       26.5G   (freebsd 9.3+9.0 · fcos 3.7+2.8 · zen 1.7)
+물리 61G          used 37G · available 23G
+VM 할당 합계      62G     (freebsd 12G ×2 · fcos-cp 8G ×3 · fcos-w1 8G · w2 4G · zen 2G)
+VM 실제 RSS       29G
 Docker            9.2G    (immich_server 5.5 · jellyfin 2.7 · 나머지 1G)
 ZFS ARC           2.6G
 ```
+
+**할당 합계가 물리를 넘었다**(62G > 61G). KVM은 오버커밋을 허용하고 실사용이 절반
+수준이라 문제되지 않지만, 이 지점부터는 **할당이 아니라 실사용과 PSI로 판단**해야 한다.
+k8s 워커를 4G로 준 것도 그래서다.
 
 **swap 5.5G를 압박으로 오해하기 쉽다.** 판단 근거는 PSI다.
 

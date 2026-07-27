@@ -14,7 +14,7 @@
 | **ebs** | Lenovo ThinkCentre M72e Tiny · i3-3220T (2c/4t) · 16GB · Crucial M500 240GB SATA SSD | 상시 서비스 (웹앱·봇 13종 self-host, ex-Cloudflare Workers · 터널) | Ubuntu 26.04 LTS | 1G |
 | **Mac** | MacBook Pro (Mac16,8) · **M4 Pro** (14c: 10P+4E) · 48GB · Apple SSD AP1024Z (1TB NVMe) | 워크스테이션 | macOS 26.4 | 2.5G (Thunderbolt) + Wi-Fi 폴백 |
 
-VM: FreeBSD 15.1-RELEASE + 16.0-CURRENT (커널 학습용) · Fedora CoreOS ×2 (k8s 랩) — 모두 prodesk libvirt/KVM
+VM: FreeBSD 15.1-RELEASE + 16.0-CURRENT (커널 학습용) · Fedora CoreOS ×5 (k8s HA 랩: cp 3 + worker 2) — 모두 prodesk libvirt/KVM
 
 OOB: **NanoKVM** (Sipeed, RISC-V IP-KVM) — prodesk에 HDMI/USB로 물린 하드웨어 원격 콘솔. OS가 죽어도(부팅 실패·BIOS·커널 패닉) 웹UI로 화면·키보드·전원 제어. Tailscale로 집 밖에서도 접속.
 
@@ -53,7 +53,7 @@ OOB: **NanoKVM** (Sipeed, RISC-V IP-KVM) — prodesk에 HDMI/USB로 물린 하�
 - [monitoring.md](docs/monitoring.md) — Beszel 대시보드 + 텔레그램 알림 (NAT 뒤 VM 연결)
 - [shell.md](docs/shell.md) — bash + starship 공통 셸 환경 (+ fish 선택)
 - [freebsd.md](docs/freebsd.md) — FreeBSD 학습 랩 (buildworld·jail·커널 모듈)
-- [kubernetes.md](docs/kubernetes.md) — k8s 테스트 랩 (Fedora CoreOS · kubeadm · CRI-O · 불변 OS의 제약)
+- [kubernetes.md](docs/kubernetes.md) — k8s 랩 (Fedora CoreOS · kubeadm · CRI-O · kube-vip HA · 페일오버 검증)
 - [emacs.md](docs/emacs.md) — Emacs/Doom/Magit 치트시트 (커널 소스 탐색·git 작업)
 
 ## 작업 일지
