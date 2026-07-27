@@ -45,13 +45,18 @@ recordsize를 워크로드에 맞추는 게 요점이다. Postgres에 128K를 �
 | `freebsd-dev` | 8 / 12G | FreeBSD 16.0-CURRENT — 커널 학습 ([freebsd.md](freebsd.md)) |
 | `freebsd` | 8 / 12G | FreeBSD 15.1-RELEASE — jail·pkgbase 실습 |
 | `zen` | 2 / 2G | 실험용 |
+| `fcos-cp1` | 4 / 8G | Fedora CoreOS — k8s control plane ([kubernetes.md](kubernetes.md)) |
+| `fcos-w1` | 4 / 8G | Fedora CoreOS — k8s worker |
 
-**전부 `data/vms` 아래 raw 포맷**이다. qcow2를 쓰지 않는 이유와 이전 과정은
-[backup.md](backup.md)에 정리했다.
+**전부 `data/vms` 아래**에 둔다. FreeBSD·zen은 raw 포맷이다.
+이들을 qcow2에서 raw로 옮긴 이유와 과정은 [backup.md](backup.md)에 정리했다.
 
 > `zen`은 원래 `/var/lib/libvirt/images/`(ext4 루트)에 qcow2로 있었다.
 > 데이터셋 밖이라 **백업에서 조용히 누락돼 있었다.** VM 하나가 다른 파일시스템에 있으면
 > 이런 일이 생긴다.
+
+> FCOS 2대는 **qcow2**다 — 배포 이미지가 qcow2라 그대로 썼다. 포맷은 다르지만
+> `data/vms` 안에 있어 zfs send 백업에는 포함된다. 위 `zen` 건과 달리 조용한 누락은 아니다.
 
 ## 서비스 (Docker)
 
@@ -97,7 +102,7 @@ Jellyfin 설정 → 재생 → 하드웨어 가속에서 **Intel QuickSync**를 
 
 **`/zpool` 전체를 붙이지 않고 필요한 데이터셋만 개별 export**했다. 전체를 rw로 걸면
 prodesk에서 msg10p의 백업 데이터(`zpool/backup`)까지 지울 수 있는 경로가 생긴다.
-export도 `192.168.123.116`(prodesk) 한정으로 제한한다.
+export도 `192.168.123.111`(prodesk) 한정으로 제한한다.
 
 ## 백업
 
@@ -115,6 +120,36 @@ export도 `192.168.123.116`(prodesk) 한정으로 제한한다.
 > 설계 문서에 적어둔 전제를 실제로 구현했는지는 별개 문제다.
 
 또한 ebs의 백업을 받는 **수신처** 역할도 한다 (`~/backups/ebs`, msg10p와 이중 목적지).
+
+
+## 메모리 — VM 5대 + 컨테이너 6종
+
+k8s 랩([kubernetes.md](kubernetes.md))으로 VM 2대가 늘었을 때의 스냅샷.
+
+```
+물리 61G          used 33G · available 28G · swap 5.5G/8G
+VM 할당 합계      42.9G   (freebsd 12G ×2 · fcos 8G ×2 · zen 2G)
+VM 실제 RSS       26.5G   (freebsd 9.3+9.0 · fcos 3.7+2.8 · zen 1.7)
+Docker            9.2G    (immich_server 5.5 · jellyfin 2.7 · 나머지 1G)
+ZFS ARC           2.6G
+```
+
+**swap 5.5G를 압박으로 오해하기 쉽다.** 판단 근거는 PSI다.
+
+```
+/proc/pressure/memory
+some avg10=0.04  full avg10=0.04     ← 사실상 0
+```
+
+`swappiness=60`(기본값)이 **유휴 페이지를 미리 밀어낸 결과**지, 메모리가 모자라 쫓아낸 게
+아니다. swap 상위 3개가 전부 qemu인데 오래 idle한 FreeBSD VM 페이지들이다.
+
+`free`의 swap 사용량이나 `vmstat`의 순간 `so` 값만 보면 잘못 읽는다.
+**메모리가 실제로 부족한지는 PSI로 본다.**
+
+> 할당(42.9G)과 실사용(26.5G)의 차이도 크다. VM은 게스트가 실제로 만진 페이지만
+> 호스트 RSS에 잡히므로, 갓 부팅한 FCOS처럼 할당 8G에 실사용 3G대인 경우가 흔하다.
+> **할당 합계로 용량을 계산하면 실제보다 훨씬 빡빡하게 나온다.**
 
 ## 자원 경합 — 겪은 것
 
