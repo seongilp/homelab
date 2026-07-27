@@ -27,7 +27,7 @@ k8s       v1.36.3   (kubeadm · kubelet · kubectl)
 런타임    CRI-O 1.36.2
 CNI       Flannel   pod 10.244.0.0/16 · svc 10.96.0.0/12
 HA        kube-vip v1.2.1 (ARP/L2, leader election)
-애드온    metrics-server
+애드온    metrics-server · VictoriaMetrics · local-path-provisioner
 네트워크  libvirt default NAT, DHCP 예약으로 IP 고정
 ```
 
@@ -222,6 +222,74 @@ FCOS 배포 이미지가 qcow2라 그대로 썼다.
 `data/vms` 데이터셋 안에 있으므로 **msg10p로의 zfs send 백업에는 포함된다.**
 포맷만 다르다.
 
+## 모니터링 — VictoriaMetrics
+
+클러스터 안은 [victoria-metrics-k8s-stack](https://github.com/VictoriaMetrics/helm-charts)으로
+본다. 홈랩 전체 감시(Beszel)와는 층이 다르다 — [monitoring.md](monitoring.md) 참고.
+
+```
+VMSingle      메트릭 저장 (retention 30d, 20Gi)
+VMAgent       스크랩 → VMSingle
+VMAlert       룰 평가 → Alertmanager
+Grafana       대시보드 41개 자동 프로비저닝
+node-exporter · kube-state-metrics
+```
+
+**vmcluster가 아니라 VMSingle이다.** 노드 5대 규모에서 vminsert/vmselect/vmstorage를
+나눌 이유가 없다. 쪼개는 순간 운영 대상이 셋으로 늘어난다.
+
+```
+스크랩 타겟   37개 (전부 up)
+메트릭 종류   2,182
+수집 속도     ~5,300 rows/s
+```
+
+### StorageClass가 먼저 필요했다
+
+PVC를 쓰는 첫 워크로드라 **StorageClass가 아예 없다는 걸 여기서 알았다.** kubeadm은
+스토리지 프로비저너를 깔아주지 않는다. VMSingle의 PVC가 Pending에 걸린다.
+
+local-path-provisioner(Rancher)를 default StorageClass로 깔았다. 노드 로컬 디스크를
+쓰므로 **파드가 다른 노드로 옮기면 데이터에 접근할 수 없다.** 테스트 랩이라 수용한
+제약이고, 실사용이라면 NFS(msg10p) 백엔드나 CSI가 필요하다.
+
+### 스크랩을 일부러 끈 것들
+
+`kubeControllerManager` · `kubeScheduler` · `kubeEtcd` · `kubeProxy`를 비활성화했다.
+
+kubeadm 기본 구성에서 **controller-manager와 scheduler는 `127.0.0.1`에만 바인딩**하고,
+etcd는 클라이언트 인증서를 요구한다. 그대로 켜두면 타겟이 계속 down으로 잡혀
+**알림 노이즈만 만든다.** 감시가 늘 빨간불이면 빨간불을 무시하게 된다.
+
+끈 게 아니라 **노출 설정을 손볼 때까지 미뤄둔 것**이고, values 파일에 이유를 적어뒀다.
+
+### 외부 노출은 VIP로
+
+NodePort는 모든 노드에서 열리지만, prodesk DNAT를 **특정 노드로 보내면 그 노드가
+죽을 때 경로가 끊긴다.** kube-vip VIP로 보내 리더를 따라가게 했다.
+
+```
+mac ──> prodesk:30300 ──DNAT──> VIP .49:30300 ──> Grafana
+        prodesk:30428                    :30428 ──> VMUI
+```
+
+`k8s-nodeport-forward.service`로 재부팅 후에도 유지된다. API 서버용
+`k8s-api-forward.service`와 같은 구조다.
+
+### 자기 자신을 감시하는 문제
+
+이 스택은 **클러스터 안에 있다.** 클러스터가 죽으면 그걸 알려줄 감시도 같이 죽는다.
+[monitoring.md](monitoring.md)의 "감시자는 감시 대상 밖에 둔다" 원칙과 정면으로
+어긋난다.
+
+지금은 **밖에서 보는 층이 따로 있어서** 버티는 구조다 — Beszel 에이전트가 prodesk를
+호스트 레벨에서 보고 있고, 그 허브는 ebs에 있다. VM이 통째로 죽는 상황은 그쪽에서
+잡힌다. VictoriaMetrics는 **클러스터가 살아 있을 때 그 안을 들여다보는 용도**로
+역할을 한정한다.
+
+제대로 하려면 Alertmanager를 텔레그램에 물리고, 그와 별개로 **밖에서 클러스터
+엔드포인트를 찔러보는 감시**가 있어야 한다. 아직 없다.
+
 ## 자원
 
 노드 5대를 올린 뒤 prodesk 상태. 클러스터는 생각보다 가볍다.
@@ -244,6 +312,8 @@ prodesk 전체로는 **VM 할당 62G / 물리 61G**로 오버커밋 상태지만
 - [ ] control-plane taint 되살리기 (워커가 2대이므로 cp는 시스템 파드용으로 비우기)
 - [ ] SELinux enforcing 복귀
 - [ ] kubelet serving cert rotation + CSR 자동 승인 (metrics-server 정석 해법)
+- [ ] Alertmanager → 텔레그램 (홈랩 단일 채널에 합류)
+- [ ] 클러스터 밖에서 엔드포인트를 감시하는 층
 - [ ] Ingress + cert-manager
 - [ ] etcd 백업을 msg10p 백업 흐름에 연결
 - [ ] 노드 재부팅 조율자(kured) — Zincati를 다시 켜려면 필요
