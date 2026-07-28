@@ -1,5 +1,10 @@
 # Kubernetes Lab — Fedora CoreOS
 
+> **현재 정지 상태다 (2026-07-28).** 구성과 검증을 마친 뒤 VM 5대를 내렸다.
+> prodesk 의 메모리를 [FreeBSD 커널 학습](freebsd.md)에 몰아주기 위해서다.
+> 디스크·데이터·설정은 전부 남아 있어 `virsh start` 로 되돌아온다(아래 재개 절차).
+> Gitea 는 소스 관리 용도로 계속 돌린다.
+
 [prodesk](prodesk.md) 위에 **Fedora CoreOS VM으로 올린 k8s 클러스터**.
 kubeadm으로 직접 구성했다. 관리형도, k3s 같은 배포판도 쓰지 않는다 —
 control plane이 무엇으로 이루어지는지 보는 게 목적이라서다.
@@ -375,6 +380,37 @@ DATASETS=(
 읽을 수 없다.
 
 - [ ] 외부 미러 (Codeberg 검토 중)
+
+## 정지와 재개
+
+랩이라 상시 가동하지 않는다. 노드 5대에 8G 씩 잡아두면 buildworld 가 도는
+FreeBSD VM 과 메모리를 다툰다.
+
+```
+정지 후   available 23G → 36G · VM 할당 62G → 26G (물리 61G, 오버커밋 해소)
+```
+
+**정지**
+
+```bash
+for v in fcos-w2 fcos-w1 fcos-cp3 fcos-cp2 fcos-cp1; do
+  sudo virsh shutdown $v && sudo virsh autostart --disable $v
+done
+sudo systemctl disable --now k8s-api-forward k8s-nodeport-forward
+```
+
+**재개**
+
+```bash
+for v in fcos-cp1 fcos-cp2 fcos-cp3 fcos-w1 fcos-w2; do sudo virsh start $v; done
+sudo systemctl enable --now k8s-api-forward k8s-nodeport-forward
+```
+
+control plane 3대가 먼저 떠야 etcd 쿼럼이 선다. 워커는 그 뒤에 붙어도 된다.
+kube-vip VIP 는 리더가 정해지면 자동으로 올라온다.
+
+> 정지 중에도 `vm-backup.sh` 는 매일 `data/vms` 를 복제한다. VM 이 꺼져 있으면
+> **크래시 컨시스턴트 걱정 없이 깨끗한 스냅샷**이 찍힌다는 점은 오히려 낫다.
 
 ## 자원
 

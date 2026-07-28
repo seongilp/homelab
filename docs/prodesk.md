@@ -49,9 +49,12 @@ recordsize를 워크로드에 맞추는 게 요점이다. Postgres에 128K를 �
 | `freebsd-dev` | 8 / 12G | FreeBSD 16.0-CURRENT — 커널 학습 ([freebsd.md](freebsd.md)) |
 | `freebsd` | 8 / 12G | FreeBSD 15.1-RELEASE — jail·pkgbase 실습 |
 | `zen` | 2 / 2G | 실험용 |
-| `fcos-cp1` · `cp2` · `cp3` | 4 / 8G ×3 | Fedora CoreOS — k8s control plane HA ([kubernetes.md](kubernetes.md)) |
-| `fcos-w1` | 4 / 8G | Fedora CoreOS — k8s worker |
-| `fcos-w2` | 4 / 4G | Fedora CoreOS — k8s worker |
+| `fcos-cp1` · `cp2` · `cp3` | 4 / 8G ×3 | Fedora CoreOS — k8s control plane HA ([kubernetes.md](kubernetes.md)) · **정지** |
+| `fcos-w1` | 4 / 8G | Fedora CoreOS — k8s worker · **정지** |
+| `fcos-w2` | 4 / 4G | Fedora CoreOS — k8s worker · **정지** |
+
+k8s 노드 5대는 구성·검증 후 정지해 뒀다. FreeBSD VM 이 buildworld 를 돌릴 때
+메모리를 다투기 때문이다. 디스크는 남아 있어 `virsh start` 로 재개한다.
 
 **전부 `data/vms` 아래**에 둔다. FreeBSD·zen은 raw 포맷이다.
 이들을 qcow2에서 raw로 옮긴 이유와 과정은 [backup.md](backup.md)에 정리했다.
