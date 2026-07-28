@@ -120,7 +120,8 @@ export도 `192.168.123.111`(prodesk) 한정으로 제한한다.
 
 ```
 매일 04:00  db-backup.sh   서비스 DB 덤프 + Litestream 복제본 → zpool/backup/prodesk-{db,litestream}
-매일 04:30  vm-backup.sh   data/vms → zpool/backup/prodesk-vms  (ZFS 증분, 3초)
+매일 04:30  vm-backup.sh   data/vms → zpool/backup/prodesk-vms      (ZFS 증분, 3초)
+                           data/gitea → zpool/backup/prodesk-gitea
 상시        litestream     SQLite WAL 연속 복제 (RPO 10초)
 ```
 
@@ -131,10 +132,13 @@ export도 `192.168.123.111`(prodesk) 한정으로 제한한다.
 
 또한 ebs의 백업을 받는 **수신처** 역할도 한다 (`~/backups/ebs`, msg10p와 이중 목적지).
 
-> **`data/gitea`는 아직 이 흐름 밖에 있다.** `vm-backup.sh`가 `data/vms`만 대상이라
-> 새로 만든 데이터셋에는 스냅샷조차 걸리지 않는다. 데이터셋을 추가하는 것과
-> 백업 대상에 넣는 것은 별개 작업이고, 후자를 빠뜨리면 조용히 누락된다 —
-> 위 `zen` VM 건과 같은 종류의 실수다.
+> **`data/gitea`가 한동안 이 흐름 밖에 있었다.** `vm-backup.sh`가 `data/vms`만
+> 대상으로 하드코딩돼 있어, 새로 만든 데이터셋에는 스냅샷조차 걸리지 않았다.
+> 데이터셋을 추가하는 것과 백업 대상에 넣는 것은 별개 작업이고, 후자를 빠뜨리면
+> **에러 없이** 누락된다 — 위 `zen` VM 건과 같은 종류의 실수다.
+>
+> 스크립트를 데이터셋 목록(`DATASETS`)을 도는 형태로 일반화해 해소했다.
+> 복제 로직은 그대로 두고 함수로 감쌌으며, 텔레그램 알림은 회차당 1건으로 묶었다.
 
 ## 하드웨어 이상징후 보고
 

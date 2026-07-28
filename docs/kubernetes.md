@@ -342,21 +342,38 @@ VMUI 를 `kubectl patch` 로 NodePort 로 열어뒀었다. ArgoCD 가 인수하�
 Git 에서 retention 을 30d → 45d 로 바꿔 push 하니 `kubectl apply` 없이 클러스터
 VMSingle 이 45d 로 바뀌었고, 되돌리니 30d 로 돌아왔다.
 
-### 아직 빈 칸: Gitea 가 백업 밖에 있다
+### 백업 — 데이터셋을 만드는 것과 백업에 넣는 것은 별개다
 
-Gitea 데이터는 ZFS 데이터셋 `data/gitea` 에 있지만, **기존 백업이 `data/vms` 만
-대상이라 스냅샷조차 걸려 있지 않다.**
+Gitea 데이터셋(`data/gitea`)을 만들어 뒀지만 **한동안 백업에서 빠져 있었다.**
+`vm-backup.sh` 가 `data/vms` 한 곳만 대상으로 하드코딩돼 있었기 때문이다.
+에러가 나지 않으니 알아채기 어렵다 — 문서를 쓰다 스냅샷 목록을 보고 발견했다.
 
 ```
 data/vms@auto-20260728-043001   ← 매일 04:30
 data/gitea                       ← 없음
 ```
 
-지금 prodesk 디스크가 죽으면 클러스터 정의가 통째로 날아간다. 게다가 Gitea 는
-클러스터와 **같은 물리 호스트**에 있어서 둘이 함께 죽는다. 클러스터 밖(ebs)에 두는
-선택지도 있었지만 백업 흐름 편입이 쉬운 쪽을 골랐고, 그 대가를 아직 치르지 않았다.
+스크립트를 데이터셋 목록을 도는 형태로 일반화했다. 복제 로직(공통 기준점 탐색,
+증분/전체 판단, 양쪽 prune)은 그대로 두고 함수로 감싸기만 했다.
 
-- [ ] `data/gitea` 를 msg10p 백업 흐름에 편입
+```bash
+DATASETS=(
+  "data/vms:zpool/backup/prodesk-vms"
+  "data/gitea:zpool/backup/prodesk-gitea"
+)
+```
+
+지금은 매일 04:30 에 함께 복제되고, `zpool/backup` 아래라 msg10p 의 일일 스냅샷
+30일 보호도 받는다. 첫 회차에서 `gitea.db` 와 `homelab-gitops.git` 이 원격에
+실물로 도착한 것을 확인했다.
+
+> 헤더 주석에 **"데이터셋을 새로 만들면 여기에도 추가해야 한다"** 를 적어뒀다.
+> 같은 누락이 [prodesk.md](prodesk.md) 의 `zen` VM 건에서 이미 한 번 있었다.
+
+여전히 남은 것: Gitea 는 클러스터와 **같은 물리 호스트**에 있어서 prodesk 가 죽으면
+둘이 함께 죽는다. 백업은 msg10p 에 있으니 데이터는 살지만, 복구 전까지 GitOps 소스를
+읽을 수 없다.
+
 - [ ] 외부 미러 (Codeberg 검토 중)
 
 ## 자원
@@ -381,7 +398,7 @@ prodesk 전체로는 **VM 할당 62G / 물리 61G**로 오버커밋 상태지만
 - [ ] control-plane taint 되살리기 (워커가 2대이므로 cp는 시스템 파드용으로 비우기)
 - [ ] SELinux enforcing 복귀
 - [ ] kubelet serving cert rotation + CSR 자동 승인 (metrics-server 정석 해법)
-- [ ] `data/gitea` 백업 + 외부 미러 — GitOps 소스가 백업 밖에 있다
+- [ ] Gitea 외부 미러 — prodesk 가 죽으면 GitOps 소스를 읽을 수 없다
 - [ ] Alertmanager → 텔레그램 (홈랩 단일 채널에 합류)
 - [ ] 클러스터 밖에서 엔드포인트를 감시하는 층
 - [ ] Ingress + cert-manager
