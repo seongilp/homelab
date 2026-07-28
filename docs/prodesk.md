@@ -70,8 +70,13 @@ recordsize를 워크로드에 맞추는 게 요점이다. Postgres에 128K를 �
 | **Immich** | 9000 | PostgreSQL (로컬) | `zpool/photos` NFS — External Library |
 | **Pinchflat** | 9001 | SQLite (로컬) | `zpool/youtube` NFS |
 | **Jellyfin** | 9002 | SQLite (로컬) | `zpool/youtube` · `zpool/ds920p` NFS **ro** |
+| **Gitea** | 3000 (ssh 2222) | SQLite (로컬) | — |
 
 compose는 `/opt/<서비스>/docker-compose.yml`.
+
+Gitea는 k8s 클러스터의 GitOps 소스다 ([kubernetes.md](kubernetes.md)). 클러스터 파드는
+libvirt 게이트웨이(`192.168.122.1:3000`)로 접근한다. **클러스터와 같은 물리 호스트에
+있어서 prodesk가 죽으면 둘이 함께 죽는다** — 외부 미러가 필요한 이유.
 
 ### 공통 원칙: DB는 로컬, 미디어는 NFS
 
@@ -125,6 +130,11 @@ export도 `192.168.123.111`(prodesk) 한정으로 제한한다.
 > 설계 문서에 적어둔 전제를 실제로 구현했는지는 별개 문제다.
 
 또한 ebs의 백업을 받는 **수신처** 역할도 한다 (`~/backups/ebs`, msg10p와 이중 목적지).
+
+> **`data/gitea`는 아직 이 흐름 밖에 있다.** `vm-backup.sh`가 `data/vms`만 대상이라
+> 새로 만든 데이터셋에는 스냅샷조차 걸리지 않는다. 데이터셋을 추가하는 것과
+> 백업 대상에 넣는 것은 별개 작업이고, 후자를 빠뜨리면 조용히 누락된다 —
+> 위 `zen` VM 건과 같은 종류의 실수다.
 
 ## 하드웨어 이상징후 보고
 

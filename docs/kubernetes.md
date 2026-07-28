@@ -27,7 +27,7 @@ k8s       v1.36.3   (kubeadm · kubelet · kubectl)
 런타임    CRI-O 1.36.2
 CNI       Flannel   pod 10.244.0.0/16 · svc 10.96.0.0/12
 HA        kube-vip v1.2.1 (ARP/L2, leader election)
-애드온    metrics-server · VictoriaMetrics · local-path-provisioner
+애드온    metrics-server · VictoriaMetrics · local-path-provisioner · ArgoCD
 네트워크  libvirt default NAT, DHCP 예약으로 IP 고정
 ```
 
@@ -290,6 +290,75 @@ mac ──> prodesk:30300 ──DNAT──> VIP .49:30300 ──> Grafana
 제대로 하려면 Alertmanager를 텔레그램에 물리고, 그와 별개로 **밖에서 클러스터
 엔드포인트를 찔러보는 감시**가 있어야 한다. 아직 없다.
 
+## GitOps — Gitea + ArgoCD
+
+클러스터 상태를 Git 에 선언하고 ArgoCD 가 거기에 맞춘다.
+**클러스터에 직접 `kubectl apply` 하지 않는다**는 규칙이 핵심이다.
+
+```
+prodesk
+  ├─ Gitea (Docker)  zihado/homelab-gitops
+  └─ k8s 클러스터
+       └─ ArgoCD ──watch──> 192.168.122.1:3000  (libvirt 게이트웨이)
+```
+
+저장소 구조는 app-of-apps 다. 손으로 하는 일은 **ArgoCD 설치와 root app 적용 두 번**뿐이고,
+나머지는 ArgoCD 가 저장소를 읽어 채운다.
+
+```
+bootstrap/root-app.yaml     이것 하나만 kubectl apply
+apps/argocd/                ArgoCD 자기 자신 (self-manage)
+apps/local-path-provisioner/
+apps/victoria-metrics/
+```
+
+### helm 으로 깐 것을 인수하기
+
+VictoriaMetrics 와 ArgoCD 는 helm 으로 먼저 깔려 있었다. 인수의 핵심은
+**Application 의 `releaseName` 을 기존 릴리스 이름과 똑같이 맞추는 것**이다.
+어긋나면 리소스가 전부 새로 만들어진다.
+
+sync 가 끝나 ArgoCD 가 리소스를 추적하기 시작하면, helm 릴리스 메타데이터만 지운다.
+
+```bash
+kubectl -n monitoring delete secret -l owner=helm,name=vm
+```
+
+**`helm uninstall` 을 쓰면 안 된다** — 리소스까지 지운다. 지금 `helm list -A` 는 비어
+있고 파드는 재시작 없이 그대로다.
+
+### selfHeal 이 손댄 것을 되돌린다
+
+VMUI 를 `kubectl patch` 로 NodePort 로 열어뒀었다. ArgoCD 가 인수하자마자
+**ClusterIP 로 되돌렸다.** Git 에 없는 상태였기 때문이다.
+
+고장이 아니라 이게 목적이다. 되돌리기 싫으면 Git 에 선언해야 한다.
+
+> VictoriaMetrics operator 의 `serviceSpec` 은 기본 Service 를 바꾸는 게 아니라
+> `-additional-service` 를 따로 만든다. 기본 Service 는 ClusterIP 로 남는다.
+
+### 검증
+
+Git 에서 retention 을 30d → 45d 로 바꿔 push 하니 `kubectl apply` 없이 클러스터
+VMSingle 이 45d 로 바뀌었고, 되돌리니 30d 로 돌아왔다.
+
+### 아직 빈 칸: Gitea 가 백업 밖에 있다
+
+Gitea 데이터는 ZFS 데이터셋 `data/gitea` 에 있지만, **기존 백업이 `data/vms` 만
+대상이라 스냅샷조차 걸려 있지 않다.**
+
+```
+data/vms@auto-20260728-043001   ← 매일 04:30
+data/gitea                       ← 없음
+```
+
+지금 prodesk 디스크가 죽으면 클러스터 정의가 통째로 날아간다. 게다가 Gitea 는
+클러스터와 **같은 물리 호스트**에 있어서 둘이 함께 죽는다. 클러스터 밖(ebs)에 두는
+선택지도 있었지만 백업 흐름 편입이 쉬운 쪽을 골랐고, 그 대가를 아직 치르지 않았다.
+
+- [ ] `data/gitea` 를 msg10p 백업 흐름에 편입
+- [ ] 외부 미러 (Codeberg 검토 중)
+
 ## 자원
 
 노드 5대를 올린 뒤 prodesk 상태. 클러스터는 생각보다 가볍다.
@@ -312,6 +381,7 @@ prodesk 전체로는 **VM 할당 62G / 물리 61G**로 오버커밋 상태지만
 - [ ] control-plane taint 되살리기 (워커가 2대이므로 cp는 시스템 파드용으로 비우기)
 - [ ] SELinux enforcing 복귀
 - [ ] kubelet serving cert rotation + CSR 자동 승인 (metrics-server 정석 해법)
+- [ ] `data/gitea` 백업 + 외부 미러 — GitOps 소스가 백업 밖에 있다
 - [ ] Alertmanager → 텔레그램 (홈랩 단일 채널에 합류)
 - [ ] 클러스터 밖에서 엔드포인트를 감시하는 층
 - [ ] Ingress + cert-manager
