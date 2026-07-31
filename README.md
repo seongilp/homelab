@@ -18,6 +18,8 @@ VM: FreeBSD 15.1-RELEASE + 16.0-CURRENT (커널 학습용) · Fedora CoreOS ×5 
 
 OOB: **NanoKVM** (Sipeed, RISC-V IP-KVM) — prodesk에 HDMI/USB로 물린 하드웨어 원격 콘솔. OS가 죽어도(부팅 실패·BIOS·커널 패닉) 웹UI로 화면·키보드·전원 제어. Tailscale로 집 밖에서도 접속.
 
+LoRa: **Meshtastic** 노드 4대 (Heltec V3 ×2 고정 · nRF52840 트래커 ×2 휴대) — 인터넷 없이 동작하는 독립 메시망. MQTT 게이트웨이 1대로만 기존 네트워크와 접점을 둔다.
+
 ## 토폴로지
 
 ```
@@ -47,6 +49,7 @@ OOB: **NanoKVM** (Sipeed, RISC-V IP-KVM) — prodesk에 HDMI/USB로 물린 하�
 
 - [cloudflare-migration.md](docs/cloudflare-migration.md) — Workers 13종을 ebs로 이관 (어댑터 설계·캐시 계층·p99 튜닝)
 - [network.md](docs/network.md) — 2.5G 멀티기가 전환, 링크 이중화, NFS 자동복구
+- [meshtastic.md](docs/meshtastic.md) — LoRa 메시 노드 4대 (MQTT 게이트웨이·TCP 원격 관리·전력 특성·region 규제)
 - [storage.md](docs/storage.md) — ZFS 풀 레이아웃, 튜닝(ARC/recordsize), 디스크 검증
 - [prodesk.md](docs/prodesk.md) — 컴퓨트/미디어 노드 (VM 8대 · Immich·Pinchflat·Jellyfin·Gitea · NFS 설계)
 - [backup.md](docs/backup.md) — 3-2-1 다층 백업 (rsync + restic + ZFS 스냅샷 + 오프사이트), 죽은 백업 탐지
