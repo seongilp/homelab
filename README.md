@@ -58,6 +58,7 @@ LoRa: **Meshtastic** 노드 4대 (Heltec V3 ×2 고정 · nRF52840 트래커 ×2
 - [freebsd.md](docs/freebsd.md) — FreeBSD 학습 랩 (buildworld·jail·커널 모듈)
 - [kubernetes.md](docs/kubernetes.md) — k8s 랩 (Fedora CoreOS · kubeadm · kube-vip HA · VictoriaMetrics · Gitea/ArgoCD GitOps)
 - [emacs.md](docs/emacs.md) — Emacs/Doom/Magit 치트시트 (커널 소스 탐색·git 작업)
+- [ebs.md](docs/ebs.md) — EBS 어학 강좌 자동화 (회차 등록 감지·트림·텔레그램 전송, 월간 교재 전사·번역·플래시카드·단어장)
 
 ## 작업 일지
 
