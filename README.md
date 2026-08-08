@@ -54,6 +54,7 @@ LoRa: **Meshtastic** 노드 4대 (Heltec V3 ×2 고정 · nRF52840 트래커 ×2
 - [storage.md](docs/storage.md) — ZFS 풀 레이아웃, 튜닝(ARC/recordsize), 디스크 검증
 - [prodesk.md](docs/prodesk.md) — 컴퓨트/미디어 노드 (VM 8대 · Immich·Pinchflat·Jellyfin·Gitea · NFS 설계)
 - [backup.md](docs/backup.md) — 3-2-1 다층 백업 (rsync + restic + ZFS 스냅샷 + 오프사이트), 죽은 백업 탐지
+- [ups.md](docs/ups.md) — UPS (Eaton 650VA + NUT) — ebs 자동 셧다운·텔레그램 일일 리포트
 - [monitoring.md](docs/monitoring.md) — Beszel 대시보드 + 텔레그램 알림 (NAT 뒤 VM 연결), k8s 감시와의 층 구분
 - [shell.md](docs/shell.md) — bash + starship 공통 셸 환경 (+ fish 선택)
 - [freebsd.md](docs/freebsd.md) — FreeBSD 학습 랩 (buildworld·jail·커널 모듈)
