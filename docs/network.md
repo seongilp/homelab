@@ -44,30 +44,71 @@ msg10p를 Ubuntu 26.04로 재설치하면서 **Mellanox ConnectX-3** (SFP+)를 �
 
 2.35 → **9.12 Gbps, 3.9배.** MTU 1500 기준이라 점보프레임(9000) 여지는 남아 있다.
 
-### IP가 또 바뀌었다 — 참조 추적 재실행
+### 주소가 또 바뀌었다 — 참조 추적 재실행
 
 재설치·NIC 교체로 MAC이 바뀌니 [예약이 안 따라온다](#주소를-바꾸면-참조를-전부-찾아야-한다)는
 교훈이 그대로 재현됐다.
 
-- **msg10p**: `.100` → `.104` (ConnectX-3, 새 MAC)
-- **prodesk**: `.111` → `.118` (USB Realtek을 빼고 온보드 옆 PCIe **I225-V**로 교체 — USB 재열거 문제의 근본 해결)
+- **msg10p**: 주 경로가 `.100`(1G) → **`.104`**(ConnectX-3 10G). 단 `.100`은 죽은 게 아니라
+  **1G 폴백으로 계속 살아 있다** — 두 주소 모두 SSH가 붙는다
+- **prodesk**: `.111` → `.118` (USB Realtek을 빼고 PCIe **I225-V**로 교체 — USB 재열거 문제의 근본 해결)
 
 `~/.ssh/config`·백업 스크립트·NFS 마운트·문서의 옛 주소 참조를 전부 갱신 대상에 올린다.
+
+> **폴백 주소가 살아 있으면 참조 추적이 더 위험하다.** `.100`으로 남아 있던 참조는
+> 에러를 내지 않아 눈에 안 띄지만, 조용히 **1G 링크로 도는** 상태가 된다.
+> 끊기면 금방 찾는데, 느려지기만 하면 아무도 모른다 —
+> [같은 서브넷 링크 경로 함정](#default-metric만-보면-속는다--같은-서브넷은-링크-경로가-이긴다)과 같은 종류의 사고다.
+
+### DHCP 풀이 고정 장비 주소를 물었다
+
+점검 중에 Mac(`en15`)이 **`.102`를 임대받은 걸** 발견했다. 그런데 `.102`는
+**msg10p의 iLO**(관리 포트) 주소다. 실제로 같은 주소를 둘이 쓰고 있었다.
+
+```
+192.168.123.100  94:40:c9:f9:f5:a5   msg10p eno2 (1G 폴백)
+192.168.123.102  94:40:c9:f9:f5:a2   iLO  ← MAC이 eno2와 한 블록(끝자리만 다름)
+192.168.123.120  74:d7:ae:00:44:69   Mac en15 (재임대 후)
+```
+
+Mac이 임대를 갱신하며 `.120`으로 옮겨가 저절로 해소됐지만, **원인은 그대로다** —
+라우터 DHCP 풀 범위 안에 iLO의 고정 주소가 들어가 있다. 다음에 또 물릴 수 있다.
+
+- iLO·IPMI처럼 **OS 바깥에서 도는 장비는 DHCP 풀 밖**에 두거나 예약으로 못 박는다
+- 이런 충돌은 조용하다. 발견 경로가 "다른 걸 점검하다 우연히"였다는 게 문제다
+- iLO MAC은 온보드 NIC과 **한 블록에서 연달아** 배정된다(`…f5:a5` / `…f5:a2`) — 정체 파악에 쓸 만한 단서
 
 ## 링크 이중화 (자동 페일오버)
 
 물리적으로 다른 두 NIC을 두고 route metric으로 우선순위를 준다. 주 링크가 죽으면 자동 전환.
 
-```
-# 예시 — 주력 NIC / 대기 NIC 에 metric 차등
-nmcli con mod "<주력>"  ipv4.route-metric 100   # 우선
-nmcli con mod "<대기>"  ipv4.route-metric 200   # 대기
-```
-
-- **msg10p**: ConnectX-3 10G 단일 (`.104`) — ⚠️ 재설치 후 폴백 미구성 (I350 4포트가 놀고 있다)
+- **msg10p**: ConnectX-3 10G `.104` (metric 100) → I350 온보드 1G `.100` (metric 500)
 - **prodesk**: PCIe I225-V 2.5G (`.118`) → Wi-Fi (`.109`)
 
-주소는 **라우터 DHCP 예약**으로 MAC에 고정한다. NetworkManager 수동 IP와 라우터 예약을
+관리 도구는 노드마다 다르다. **msg10p는 재설치 후 NetworkManager가 아니라 netplan
+(systemd-networkd)** 을 쓴다 — 같은 metric 차등을 이렇게 준다.
+
+```yaml
+# msg10p — /etc/netplan/00-installer-config.yaml
+ens1:                      # ConnectX-3 10G — 주력
+  dhcp4: true
+  dhcp4-overrides: { route-metric: 100 }
+eno2:                      # I350 온보드 1G — 대기
+  dhcp4: true
+  dhcp4-overrides: { route-metric: 500 }
+  optional: true           # 링크 없어도 부팅을 막지 않는다
+```
+
+```bash
+# prodesk 등 NetworkManager 노드
+nmcli con mod "<주력>"  ipv4.route-metric 100
+nmcli con mod "<대기>"  ipv4.route-metric 200
+```
+
+`optional: true`가 중요하다. 없으면 대기 NIC에 케이블이 안 꽂혀 있을 때
+`systemd-networkd-wait-online`이 부팅을 붙잡는다.
+
+주소는 **라우터 DHCP 예약**으로 MAC에 고정한다. 수동 IP와 라우터 예약을
 양쪽에서 걸면 충돌 소지가 있으니 한 곳에서만 관리한다.
 
 > 예약은 MAC에 묶인다. **랜카드를 갈면 예약이 안 따라온다** — 2026-07-27에 prodesk
