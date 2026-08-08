@@ -1,0 +1,289 @@
+#!/usr/bin/env python3
+"""iLO(Redfish) 관리 CLI — 표준 라이브러리만 사용, 외부 의존성 없음.
+
+설정: ~/.config/ilo/<이름>.env  (권한 0600 권장)
+    ILO_HOST=192.168.123.102
+    ILO_USER=zihado
+    ILO_PASS='...'
+
+사용:
+    ilo status                     전원/POST/헬스
+    ilo power on|off|forceoff|reset|cycle
+    ilo bios [필터]                BIOS 속성 조회(부분 문자열 필터)
+    ilo bios-set K=V [K=V ...]     BIOS 속성 변경(재부팅 후 적용)
+    ilo bios-pending               변경 대기 목록
+    ilo boot                       부팅 항목 목록
+    ilo bootnext <타깃>            1회성 부팅 지정 (Usb/Hdd/Pxe/BiosSetup/None)
+    ilo iml [N]                    통합 관리 로그 최근 N건 (기본 15)
+    ilo console                    HTML5 콘솔 URL 출력
+    ilo raw <경로> [JSON]          임의 Redfish 호출 (GET, 본문 주면 PATCH)
+
+여러 대를 쓰면 --host 로 설정 이름을 고른다:
+    ilo --host msg10p status
+"""
+from __future__ import annotations
+
+import argparse
+import base64
+import json
+import os
+import shlex
+import ssl
+import sys
+import urllib.error
+import urllib.request
+
+CONFIG_DIR = os.path.expanduser("~/.config/ilo")
+DEFAULT_HOST = "msg10p"
+
+# iLO는 자체 서명 인증서를 쓴다. 사설망의 관리 포트라 검증을 생략한다.
+SSL_CTX = ssl.create_default_context()
+SSL_CTX.check_hostname = False
+SSL_CTX.verify_mode = ssl.CERT_NONE
+
+RESET_TYPES = {
+    "on": "On",
+    "off": "GracefulShutdown",
+    "forceoff": "ForceOff",
+    "reset": "ForceRestart",
+    "cycle": "PowerCycle",
+}
+
+
+def die(msg: str, code: int = 1):
+    print(f"오류: {msg}", file=sys.stderr)
+    sys.exit(code)
+
+
+def load_config(name: str) -> dict:
+    """~/.config/ilo/<name>.env 를 읽는다. 셸 따옴표를 존중한다."""
+    path = os.path.join(CONFIG_DIR, f"{name}.env")
+    if not os.path.exists(path):
+        die(f"설정 파일 없음: {path}\n"
+            f"만드는 법:\n"
+            f"  mkdir -p {CONFIG_DIR}\n"
+            f"  (umask 077; printf 'ILO_HOST=...\\nILO_USER=...\\nILO_PASS=...\\n' > {path})")
+
+    mode = os.stat(path).st_mode & 0o777
+    if mode & 0o077:
+        print(f"경고: {path} 권한이 {oct(mode)} 입니다. chmod 600 을 권합니다.", file=sys.stderr)
+
+    cfg = {}
+    with open(path) as fh:
+        for line in fh:
+            line = line.strip()
+            if not line or line.startswith("#") or "=" not in line:
+                continue
+            key, _, val = line.partition("=")
+            parts = shlex.split(val)          # 따옴표 제거
+            cfg[key.strip()] = parts[0] if parts else ""
+
+    for required in ("ILO_HOST", "ILO_USER", "ILO_PASS"):
+        if not cfg.get(required):
+            die(f"{path} 에 {required} 가 없습니다")
+    return cfg
+
+
+class Ilo:
+    def __init__(self, cfg: dict):
+        self.host = cfg["ILO_HOST"]
+        token = base64.b64encode(
+            f"{cfg['ILO_USER']}:{cfg['ILO_PASS']}".encode()
+        ).decode()
+        self.auth = f"Basic {token}"
+
+    def request(self, path: str, method: str = "GET", body: dict | None = None):
+        url = f"https://{self.host}{path}"
+        data = json.dumps(body).encode() if body is not None else None
+        req = urllib.request.Request(url, data=data, method=method)
+        req.add_header("Authorization", self.auth)
+        req.add_header("Content-Type", "application/json")
+        try:
+            with urllib.request.urlopen(req, context=SSL_CTX, timeout=30) as resp:
+                raw = resp.read()
+        except urllib.error.HTTPError as exc:
+            detail = exc.read().decode(errors="replace")[:500]
+            if exc.code == 401:
+                die("인증 실패 — ILO_USER/ILO_PASS 확인")
+            die(f"HTTP {exc.code}: {detail}")
+        except urllib.error.URLError as exc:
+            die(f"접속 실패 ({self.host}): {exc.reason}")
+        return json.loads(raw) if raw else {}
+
+    # --- 편의 래퍼 ---
+    def system(self):
+        return self.request("/redfish/v1/Systems/1/")
+
+    def bios(self):
+        return self.request("/redfish/v1/Systems/1/Bios/").get("Attributes", {})
+
+
+def cmd_status(ilo: Ilo, _args):
+    s = ilo.system()
+    hpe = s.get("Oem", {}).get("Hpe", {})
+    st = s.get("Status", {})
+    rows = [
+        ("모델", s.get("Model")),
+        ("시리얼", s.get("SerialNumber")),
+        ("전원", s.get("PowerState")),
+        ("POST", hpe.get("PostState")),
+        ("헬스", st.get("Health")),
+        ("BIOS", s.get("BiosVersion")),
+        ("호스트명", hpe.get("HostOS", {}).get("OsName") or s.get("HostName")),
+    ]
+    mem = s.get("MemorySummary", {}).get("TotalSystemMemoryGiB")
+    cpu = s.get("ProcessorSummary", {})
+    if mem:
+        rows.append(("메모리", f"{mem} GiB"))
+    if cpu.get("Model"):
+        rows.append(("CPU", f"{cpu['Model'].strip()} x{cpu.get('Count', '?')}"))
+    for label, value in rows:
+        if value:
+            print(f"{label:10} {value}")
+
+
+def cmd_power(ilo: Ilo, args):
+    action = args.action
+    if action not in RESET_TYPES:
+        die(f"알 수 없는 동작: {action} (가능: {', '.join(RESET_TYPES)})")
+    current = ilo.system().get("PowerState")
+    if action == "on" and current == "On":
+        print("이미 켜져 있습니다.")
+        return
+    ilo.request(
+        "/redfish/v1/Systems/1/Actions/ComputerSystem.Reset/",
+        method="POST",
+        body={"ResetType": RESET_TYPES[action]},
+    )
+    print(f"요청 전송: {action} ({RESET_TYPES[action]})")
+
+
+def cmd_bios(ilo: Ilo, args):
+    attrs = ilo.bios()
+    needle = (args.filter or "").lower()
+    hits = {k: v for k, v in attrs.items() if needle in k.lower()}
+    for key in sorted(hits):
+        print(f"{key:38} = {hits[key]}")
+    print(f"\n({len(hits)}개 표시 / 전체 {len(attrs)}개)")
+
+
+def cmd_bios_set(ilo: Ilo, args):
+    attrs = {}
+    for pair in args.pairs:
+        if "=" not in pair:
+            die(f"KEY=VALUE 형식이 아닙니다: {pair}")
+        key, _, val = pair.partition("=")
+        attrs[key] = val
+    current = ilo.bios()
+    for key in attrs:
+        if key not in current:
+            print(f"경고: '{key}' 는 현재 BIOS 속성 목록에 없습니다.", file=sys.stderr)
+    ilo.request("/redfish/v1/Systems/1/Bios/Settings/", method="PATCH",
+                body={"Attributes": attrs})
+    for key, val in attrs.items():
+        print(f"예약됨: {key} = {val}")
+    print("\n→ 재부팅해야 적용됩니다.  ilo power reset")
+
+
+def cmd_bios_pending(ilo: Ilo, _args):
+    pending = ilo.request("/redfish/v1/Systems/1/Bios/Settings/").get("Attributes", {})
+    if not pending:
+        print("변경 대기 중인 항목 없음")
+        return
+    for key in sorted(pending):
+        print(f"{key:38} = {pending[key]}")
+
+
+def cmd_boot(ilo: Ilo, _args):
+    data = ilo.request("/redfish/v1/Systems/1/BootOptions/?$expand=.")
+    members = data.get("Members", [])
+    if not members:
+        print("부팅 항목 없음")
+        return
+    for m in members:
+        enabled = "" if m.get("BootOptionEnabled", True) else "  (비활성)"
+        print(f"{m.get('Id', '?'):20} {m.get('DisplayName', '')}{enabled}")
+
+
+def cmd_bootnext(ilo: Ilo, args):
+    ilo.request("/redfish/v1/Systems/1/", method="PATCH", body={
+        "Boot": {
+            "BootSourceOverrideTarget": args.target,
+            "BootSourceOverrideEnabled": "Once",
+        }
+    })
+    print(f"다음 부팅 1회만: {args.target}")
+
+
+def cmd_iml(ilo: Ilo, args):
+    data = ilo.request("/redfish/v1/Systems/1/LogServices/IML/Entries/")
+    entries = data.get("Members", [])[-args.count:]
+    for e in entries:
+        sev = e.get("Severity", "")
+        print(f"[{e.get('Created', '')}] {sev:9} {e.get('Message', '')}")
+    if not entries:
+        print("로그 없음")
+
+
+def cmd_console(ilo: Ilo, _args):
+    print(f"https://{ilo.host}/       (Remote Console → HTML5)")
+
+
+def cmd_raw(ilo: Ilo, args):
+    body = json.loads(args.body) if args.body else None
+    method = "PATCH" if body else "GET"
+    print(json.dumps(ilo.request(args.path, method=method, body=body),
+                     indent=2, ensure_ascii=False))
+
+
+def build_parser():
+    p = argparse.ArgumentParser(
+        prog="ilo", description="iLO(Redfish) 관리 CLI",
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        epilog="설정 파일: ~/.config/ilo/<이름>.env")
+    p.add_argument("--host", default=os.environ.get("ILO_PROFILE", DEFAULT_HOST),
+                   help=f"설정 이름 (기본: {DEFAULT_HOST})")
+    sub = p.add_subparsers(dest="cmd", required=True)
+
+    sub.add_parser("status", help="전원/POST/헬스").set_defaults(fn=cmd_status)
+
+    sp = sub.add_parser("power", help="전원 제어")
+    sp.add_argument("action", choices=list(RESET_TYPES))
+    sp.set_defaults(fn=cmd_power)
+
+    sp = sub.add_parser("bios", help="BIOS 속성 조회")
+    sp.add_argument("filter", nargs="?", default="", help="부분 문자열 필터")
+    sp.set_defaults(fn=cmd_bios)
+
+    sp = sub.add_parser("bios-set", help="BIOS 속성 변경(재부팅 후 적용)")
+    sp.add_argument("pairs", nargs="+", metavar="KEY=VALUE")
+    sp.set_defaults(fn=cmd_bios_set)
+
+    sub.add_parser("bios-pending", help="변경 대기 목록").set_defaults(fn=cmd_bios_pending)
+    sub.add_parser("boot", help="부팅 항목 목록").set_defaults(fn=cmd_boot)
+
+    sp = sub.add_parser("bootnext", help="1회성 부팅 지정")
+    sp.add_argument("target", help="Usb / Hdd / Pxe / Cd / BiosSetup / None")
+    sp.set_defaults(fn=cmd_bootnext)
+
+    sp = sub.add_parser("iml", help="통합 관리 로그")
+    sp.add_argument("count", nargs="?", type=int, default=15)
+    sp.set_defaults(fn=cmd_iml)
+
+    sub.add_parser("console", help="콘솔 URL").set_defaults(fn=cmd_console)
+
+    sp = sub.add_parser("raw", help="임의 Redfish 호출")
+    sp.add_argument("path")
+    sp.add_argument("body", nargs="?", help="JSON 본문을 주면 PATCH")
+    sp.set_defaults(fn=cmd_raw)
+
+    return p
+
+
+def main():
+    args = build_parser().parse_args()
+    args.fn(Ilo(load_config(args.host)), args)
+
+
+if __name__ == "__main__":
+    main()

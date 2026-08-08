@@ -1,0 +1,30 @@
+# This is the network config written by 'subiquity'
+network:
+  ethernets:
+    eno2:
+      match:
+        macaddress: 94:40:c9:f9:f5:a5
+      set-name: eno2
+      dhcp4: true
+      dhcp4-overrides:
+        route-metric: 500
+      optional: true
+    eno3:
+      accept-ra: true
+    eno4:
+      accept-ra: true
+    enp1s0f4u4:
+      accept-ra: true
+      dhcp4: true
+      dhcp6: true
+    ens1:
+      accept-ra: true
+      dhcp4: true
+      dhcp6: true
+      dhcp4-overrides:
+        route-metric: 100
+      dhcp6-overrides:
+        route-metric: 100
+    ens1d1:
+      accept-ra: true
+  version: 2

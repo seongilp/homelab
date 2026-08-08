@@ -1,0 +1,10 @@
+# msg10p NFS exports — 2026-08-08
+# 클라이언트 IP가 DHCP로 바뀌는 일이 잦아(.111 → .118) 개별 IP 대신 서브넷으로 지정한다.
+# 맥은 SMB를 쓰고, NFS는 prodesk 등 리눅스 클라이언트 전용이다.
+#
+# no_subtree_check: ZFS 데이터셋 경계에서 불필요한 검사를 피한다
+# crossmnt        : 하위 데이터셋(zpool/photos 등)까지 한 번에 따라간다
+# anonuid/anongid : root_squash 시 zihado(1000)로 매핑
+
+/zpool   192.168.123.0/24(rw,sync,no_subtree_check,crossmnt,root_squash,anonuid=1000,anongid=1000)
+/zpool2  192.168.123.0/24(rw,sync,no_subtree_check,crossmnt,root_squash,anonuid=1000,anongid=1000)

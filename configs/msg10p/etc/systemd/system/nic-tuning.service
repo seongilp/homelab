@@ -1,0 +1,13 @@
+[Unit]
+Description=10G NIC ring buffer tuning (ens1)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+# 기본 1024는 10G에서 부족해 드롭이 생긴다. 하드웨어 최대는 8192.
+ExecStart=/usr/sbin/ethtool -G ens1 rx 4096 tx 4096
+
+[Install]
+WantedBy=multi-user.target
