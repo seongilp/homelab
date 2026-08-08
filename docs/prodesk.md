@@ -11,12 +11,12 @@ HP EliteDesk 800 G6 Desktop Mini
   RAM   64GB
   SSD   Crucial MX500 1TB (SATA)  — Ubuntu 26.04 루트
   NVMe  WD Black SN750 500GB      — ZFS `data` 풀
-  NET   USB 2.5G Realtek RTL8156 (주, .111) + Wi-Fi (폴백, .109) → [network.md](network.md)
+  NET   PCIe 2.5G Intel I225-V (주, .118) + Wi-Fi (폴백, .109) → [network.md](network.md)
 ```
 
-> 랜카드는 2026-07-27에 갈았다. 이전 iptime 어댑터가 **3일간 686번 USB 재열거**를 일으켜
-> cloudflared 끊김과 Beszel 헛알림의 원인이 되고 있었다. 증상이 조용해서 찾는 데
-> 오래 걸렸다 — [network.md](network.md#usb-랜카드가-조용히-죽는-법) 참고.
+> 랜카드 이력: 2026-07-27 iptime USB 어댑터가 **3일간 686번 USB 재열거**를 일으켜
+> Realtek RTL8156 USB로 교체(`.111`) — [network.md](network.md#usb-랜카드가-조용히-죽는-법) 참고.
+> 2026-08 USB를 아예 벗어나 **PCIe I225-V**로 갈았다(`.118`). USB 버스 재열거 문제의 근본 해결.
 
 **미니 PC라 드라이브 베이가 없다.** 그래서 대용량 데이터는 전부 msg10p에 두고 NFS로 붙인다.
 이 제약이 아래 모든 설계 결정의 출발점이다.
@@ -106,16 +106,18 @@ Jellyfin 설정 → 재생 → 하드웨어 가속에서 **Intel QuickSync**를 
 ## NFS 마운트
 
 ```
-192.168.123.100:/zpool/photos   → /mnt/nas/photos    (rw)
-192.168.123.100:/zpool/youtube  → /mnt/nas/youtube   (rw)
-192.168.123.100:/zpool/ds920p   → /mnt/nas/ds920p    (rw, 컨테이너엔 ro)
+192.168.123.104:/zpool/photos   → /mnt/nas/photos    (rw)
+192.168.123.104:/zpool/youtube  → /mnt/nas/youtube   (rw)
+192.168.123.104:/zpool/ds920p   → /mnt/nas/ds920p    (rw, 컨테이너엔 ro)
 ```
 
 `/etc/fstab`에 `_netdev,x-systemd.automount`로 등록.
 
-**`/zpool` 전체를 붙이지 않고 필요한 데이터셋만 개별 export**했다. 전체를 rw로 걸면
-prodesk에서 msg10p의 백업 데이터(`zpool/backup`)까지 지울 수 있는 경로가 생긴다.
-export도 `192.168.123.111`(prodesk) 한정으로 제한한다.
+> **export 정책 변경 (2026-08-08, msg10p 재설치)**: 원래는 필요한 데이터셋만 개별 export하고
+> 클라이언트도 prodesk IP 한정이었다. 그런데 클라이언트 IP가 DHCP로 자꾸 바뀌면서(`.111` → `.118`)
+> IP 한정이 오히려 장애 요인이 됐고, 지금은 **풀 단위(`/zpool`·`/zpool2`) + 서브넷 지정 +
+> `crossmnt`**로 단순화했다. 백업 데이터 보호는 IP 제한 대신 `root_squash`(zihado 매핑)와
+> msg10p의 ZFS 스냅샷 30일에 기댄다. Mac은 NFS 대신 SMB를 쓴다.
 
 ## 백업
 

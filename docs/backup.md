@@ -33,8 +33,8 @@
 | 호스트 | LAN IP | 역할 |
 |--------|--------|------|
 | MacBook (`mbpr`) | DHCP | 백업 소스 |
-| `msg10p` | 192.168.123.100 | 백업 종착지 (HPE MicroServer Gen10 Plus, ZFS) |
-| `prodesk` | 192.168.123.111 (유선) / .109 (무선) | 랩 서버 (libvirt VM) |
+| `msg10p` | 192.168.123.104 | 백업 종착지 (HPE MicroServer Gen10 Plus, ZFS) |
+| `prodesk` | 192.168.123.118 (유선) / .109 (무선) | 랩 서버 (libvirt VM) |
 | `ebs` (`tinym72e`) | 192.168.123.105 | 상시 가동 소형 노드 (Beszel 허브) |
 
 > **백업 설정에는 오버레이 VPN 주소를 쓰지 말 것.** VPN 클라이언트가 꺼져 있으면

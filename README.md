@@ -9,8 +9,8 @@
 
 | 노드 | 하드웨어 | 역할 | OS | 네트워크 |
 |------|----------|------|-----|----------|
-| **msg10p** | HP ProLiant MicroServer Gen10+ · Xeon E-2224 (4c) · 64GB ECC · SK hynix 1TB NVMe(root) + HGST 10TB×2 + WD Red 4TB×2 (ZFS 미러) | 스토리지 / 백업 서버 | Rocky Linux 9.8 | 2.5G + 1G 자동 페일오버 |
-| **prodesk** | HP EliteDesk 800 G6 Mini · i9-10900 (10c/20t) · 64GB · Crucial MX500 1TB(root) + WD SN750 500GB NVMe(ZFS) | 컴퓨트 / 랩 | Ubuntu 26.04 LTS | 2.5G 유선 + Wi-Fi 폴백 |
+| **msg10p** | HP ProLiant MicroServer Gen10+ · Xeon E-2224 (4c) · 64GB ECC · SK hynix 1TB NVMe(root) + HGST 10TB×2 + WD Red 4TB×2 (ZFS 미러) | 스토리지 / 백업 서버 | Ubuntu 26.04 LTS | **10G** (ConnectX-3 SFP+) |
+| **prodesk** | HP EliteDesk 800 G6 Mini · i9-10900 (10c/20t) · 64GB · Crucial MX500 1TB(root) + WD SN750 500GB NVMe(ZFS) | 컴퓨트 / 랩 | Ubuntu 26.04 LTS | 2.5G (PCIe I225-V) + Wi-Fi 폴백 |
 | **ebs** | Lenovo ThinkCentre M72e Tiny · i3-3220T (2c/4t) · 16GB · Crucial M500 240GB SATA SSD | 상시 서비스 (웹앱·봇 13종 self-host, ex-Cloudflare Workers · 터널) | Ubuntu 26.04 LTS | 1G |
 | **Mac** | MacBook Pro (Mac16,8) · **M4 Pro** (14c: 10P+4E) · 48GB · Apple SSD AP1024Z (1TB NVMe) | 워크스테이션 | macOS 26.4 | **10G** (Thunderbolt, AQC113) + Wi-Fi 폴백 |
 
@@ -31,7 +31,7 @@ LoRa: **Meshtastic** 노드 4대 (Heltec V3 ×2 고정 · nRF52840 트래커 ×2
               │         │        │    │
            ┌──┴──┐   ┌──┴──┐  ┌──┴──┐ └──┐(1G)
            │ Mac │   │msg10p│  │prodesk│  │ ebs │
-           │ 10G │   │2.5G  │  │ 2.5G  │  │ 감시 허브
+           │ 10G │   │ 10G  │  │ 2.5G  │  │ 감시 허브
            └─────┘   └──┬──┘  └───┬───┘  └──┬──┘
             워크        ZFS 26T    │(libvirt) │
             스테이션   미러 2풀    │  └─ NanoKVM (OOB 콘솔)
@@ -39,8 +39,8 @@ LoRa: **Meshtastic** 노드 4대 (Heltec V3 ×2 고정 · nRF52840 트래커 ×2
                           freebsd  fb-crnt   Beszel
                           (15.1)  (CURRENT)  모니터링 ← 5노드 감시
 
-  네트워크 이중화: msg10p·prodesk·Mac 모두 주 링크 죽으면 자동 폴백
-  Mac만 10G — 상대편(msg10p·prodesk)이 2.5G라 단일 스트림은 아직 2.35 Gbps
+  네트워크 이중화: prodesk·Mac 주 링크 죽으면 자동 폴백 (msg10p는 재설치 후 미구성)
+  10G 구간: Mac ↔ msg10p 실측 9.1 Gbps — prodesk는 2.5G (2.34 Gbps)
   백업 흐름: Mac     ─rsync/restic→ msg10p(로컬) ─restic→ 클라우드(오프사이트)
              ebs     ─rsync→ msg10p + prodesk (이중 목적지, 매일)
              prodesk ─zfs send→ msg10p (VM 증분 매일 · 서비스 DB 매일 + Litestream 연속)
@@ -49,7 +49,7 @@ LoRa: **Meshtastic** 노드 4대 (Heltec V3 ×2 고정 · nRF52840 트래커 ×2
 ## 문서
 
 - [cloudflare-migration.md](docs/cloudflare-migration.md) — Workers 13종을 ebs로 이관 (어댑터 설계·캐시 계층·p99 튜닝)
-- [network.md](docs/network.md) — 멀티기가 전환 (2.5G → Mac 10G), 링크 이중화, NFS 자동복구
+- [network.md](docs/network.md) — 멀티기가 전환 (2.5G → 10G, Mac↔NAS 9.1 Gbps 실측), 링크 이중화, NFS 자동복구
 - [meshtastic.md](docs/meshtastic.md) — LoRa 메시 노드 4대 (MQTT 게이트웨이·TCP 원격 관리·전력 특성·region 규제)
 - [storage.md](docs/storage.md) — ZFS 풀 레이아웃, 튜닝(ARC/recordsize), 디스크 검증
 - [prodesk.md](docs/prodesk.md) — 컴퓨트/미디어 노드 (VM 8대 · Immich·Pinchflat·Jellyfin·Gitea · NFS 설계)

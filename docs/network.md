@@ -18,42 +18,54 @@ Wi-Fi(802.11ax, 신호 -45dBm)로도 링크 속도는 960Mbps였지만, **왕복
 파일 많은 작업이 느렸다. 유선 전환 후 RTT <1ms. "5GHz니까 빠르다"는 대역폭 얘기일 뿐,
 메타데이터 왕복이 잦은 워크로드는 지연이 지배한다.
 
-## 10G 도입 (2026-08, 아직 Mac만)
+## 10G 도입 (2026-08)
+
+### 1차: Mac만 (2026-08-07)
 
 Mac에 Thunderbolt 10G 어댑터(ACASIS NT0201, **Aquantia AQC113**)를 붙였다.
 경로는 Mac → CalDigit TS4 → NT0201 (PCIe 터널, x4 8.0 GT/s) — TB 체인 40Gbps를
 디스플레이와 나눠 써도 10G에는 여유가 있다. 스위치와 **10Gbase-T full-duplex** 협상 완료.
 
-그런데 실측은 그대로다.
+그런데 실측은 2.35 Gbps 그대로였다. **한쪽만 10G면 단일 스트림은 여전히 상대편 속도다.**
+링크 협상만 보고 끝내지 말고 iperf3로 끝단까지 실측해야 한다 —
+10G 협상과 10G 스루풋은 다른 얘기다.
 
-| 구간 | 실측 | 병목 |
+### 2차: msg10p 합류 (2026-08-08) — 첫 진짜 10G 구간
+
+msg10p를 Ubuntu 26.04로 재설치하면서 **Mellanox ConnectX-3** (SFP+)를 꽂았다.
+이제 Mac ↔ msg10p가 양끝 다 10G다.
+
+| 구간 | 실측 | 비고 |
 |------|------|------|
-| Mac ↔ prodesk | 2.33 Gbps | prodesk가 2.5G |
-| Mac ↔ NAS (양방향) | 2.35 Gbps | NAS도 2.5G |
+| Mac → msg10p | 8.47 Gbps | 단일 스트림 |
+| msg10p → Mac | 9.12 Gbps | 단일 스트림, 재전송 109 |
+| Mac ↔ msg10p | 8.79 Gbps | 4스트림 합산 |
+| Mac ↔ prodesk | 2.34 Gbps | prodesk는 2.5G (온보드 아님, PCIe I225-V) |
 
-**한쪽만 10G면 단일 스트림은 여전히 상대편 속도다.** 지금 실익은 여러 노드와
-동시 통신할 때 Mac 쪽 업링크가 병목이 안 된다는 것뿐. 체감하려면 NAS나 prodesk에도
-10G NIC이 들어가야 한다.
+2.35 → **9.12 Gbps, 3.9배.** MTU 1500 기준이라 점보프레임(9000) 여지는 남아 있다.
 
-점검하며 확인한 것들:
+### IP가 또 바뀌었다 — 참조 추적 재실행
 
-- 링크 협상만 보고 끝내지 말고 **iperf3로 끝단까지 실측**한다 — 10G 협상과 10G 스루풋은 다른 얘기다
-- Wi-Fi가 같은 서브넷에 살아 있으므로 [링크 경로 함정](#default-metric만-보면-속는다--같은-서브넷은-링크-경로가-이긴다)을
-  재점검했다 — `route get`으로 default·NAS·prodesk 전부 유선(en15)으로 나가는 것 확인
-- MTU는 1500 유지. 상대가 전부 2.5G인 동안 점보프레임은 의미가 없다
+재설치·NIC 교체로 MAC이 바뀌니 [예약이 안 따라온다](#주소를-바꾸면-참조를-전부-찾아야-한다)는
+교훈이 그대로 재현됐다.
+
+- **msg10p**: `.100` → `.104` (ConnectX-3, 새 MAC)
+- **prodesk**: `.111` → `.118` (USB Realtek을 빼고 온보드 옆 PCIe **I225-V**로 교체 — USB 재열거 문제의 근본 해결)
+
+`~/.ssh/config`·백업 스크립트·NFS 마운트·문서의 옛 주소 참조를 전부 갱신 대상에 올린다.
 
 ## 링크 이중화 (자동 페일오버)
 
 물리적으로 다른 두 NIC을 두고 route metric으로 우선순위를 준다. 주 링크가 죽으면 자동 전환.
 
 ```
-# msg10p — USB 2.5G 주력 / 내장 1G 대기
-nmcli con mod "<usb>"  ipv4.route-metric 100   # 우선
-nmcli con mod "eno1"   ipv4.route-metric 200   # 대기
+# 예시 — 주력 NIC / 대기 NIC 에 metric 차등
+nmcli con mod "<주력>"  ipv4.route-metric 100   # 우선
+nmcli con mod "<대기>"  ipv4.route-metric 200   # 대기
 ```
 
-- **msg10p**: USB 2.5G (metric 100) → 내장 1G (metric 200)
-- **prodesk**: 유선 2.5G (metric 102, `.111`) → Wi-Fi (metric 600, `.109`)
+- **msg10p**: ConnectX-3 10G 단일 (`.104`) — ⚠️ 재설치 후 폴백 미구성 (I350 4포트가 놀고 있다)
+- **prodesk**: PCIe I225-V 2.5G (`.118`) → Wi-Fi (`.109`)
 
 주소는 **라우터 DHCP 예약**으로 MAC에 고정한다. NetworkManager 수동 IP와 라우터 예약을
 양쪽에서 걸면 충돌 소지가 있으니 한 곳에서만 관리한다.
@@ -98,7 +110,7 @@ default via .1 dev <무선> metric 600
 **확인은 `ip route`가 아니라 `ip route get <목적지>`로 한다.**
 
 ```bash
-ip route get 192.168.123.100      # 실제로 어느 인터페이스로 나가는지
+ip route get 192.168.123.104      # 실제로 어느 인터페이스로 나가는지
 ```
 
 고친 뒤 실측: **760~938 Mbps → 2,125 Mbps** (SSH 암호화 포함, 2.3배).
@@ -167,6 +179,11 @@ prodesk는 `.116` → `.111`로 바뀌었고 여섯 곳이 동시에 끊겼다.
 IP 변동에 영향받을 이유가 없었다. 참조를 고치는 것보다 **참조를 없애는 게** 낫다.
 
 ## NFS 자동복구 워치독
+
+> **은퇴 (2026-08-08)** — msg10p Ubuntu 재설치를 계기로 Mac은 NFS 대신 **SMB**로 전환했다
+> (`~/nas-mnt/zpool`·`zpool2`). NFS는 prodesk 등 리눅스 클라이언트 전용으로 남는다.
+> 아래는 macOS NFSv3 시절의 기록 — 잠금(`locallocks`)·한글 경로(`nfc`) 문제는
+> macOS에서 NFS를 다시 쓸 일이 생기면 그대로 유효하다.
 
 NFSv3는 연결이 한 번 끊기면 스스로 복구하지 않는다. 서버 네트워크를 손볼 때마다
 마운트가 죽는 걸 막기 위해 클라이언트(Mac)에 워치독을 둔다.
